@@ -68,9 +68,9 @@ r.post('/',wrap(async(req,res)=>{
   }
   const totalRevenue=Math.round(lines.reduce((s,l)=>s+l.lineRevenue,0)*100)/100;
   const totalCost=Math.round(lines.reduce((s,l)=>s+l.lineCost,0)*100)/100;
-  [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,totalCost,recordedBy:req.user._id}],{session});
-  await StockMovement.create([...demand].map(([key,qty])=>({item:key,kind:'sale',quantityDelta:-qty,unitCostSnapshot:stockById.get(key).averageUnitCost,referenceId:saved._id,createdBy:req.user._id})),{session});
-  await AuditLog.create([{actor:req.user._id,action:'sale.post',entity:'DailySale',entityId:saved._id,details:{businessDate,entryKey,totalRevenue,totalCost}}],{session});
+  [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,totalCost,recordedBy:req.user._id}],{session,ordered:true});
+  await StockMovement.create([...demand].map(([key,qty])=>({item:key,kind:'sale',quantityDelta:-qty,unitCostSnapshot:stockById.get(key).averageUnitCost,referenceId:saved._id,createdBy:req.user._id})),{session,ordered:true});
+  await AuditLog.create([{actor:req.user._id,action:'sale.post',entity:'DailySale',entityId:saved._id,details:{businessDate,entryKey,totalRevenue,totalCost}}],{session,ordered:true});
  });
  res.status(201).json(saved);
  }catch(e){if(e.code===11000)return res.status(409).json({error:'Entry key already posted'});if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
