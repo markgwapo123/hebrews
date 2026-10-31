@@ -12,7 +12,7 @@ const r=Router();r.use(requireAuth);
 r.get('/',wrap(async(req,res)=>{
  const filter=req.user.role==='owner'?{}:{recordedBy:req.user._id};
  if(req.query.date){if(!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date))return bad(res);filter.businessDate=req.query.date;}
- res.json(await DailySale.find(filter).sort({createdAt:-1}).limit(100).lean());
+ res.json(await DailySale.find(filter).populate('items.product','name').sort({createdAt:-1}).limit(100).lean());
 }));
 r.post('/',wrap(async(req,res)=>{
  const {businessDate,entryKey,items}=req.body||{};
