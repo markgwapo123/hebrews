@@ -130,7 +130,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
   <section *ngIf="user()?.role==='owner' && ownerPage==='inventory'" class="panel"><h1>Inventory</h1><p>Inventory management interface is not yet connected in this frontend. Stock summaries are available on the dashboard.</p></section>
   <section *ngIf="user()?.role==='owner' && ownerPage==='sales'" class="panel"><h1>Daily Sales</h1><p>Daily sales posting is not yet enabled. Sales shown on the dashboard come from recorded transactions.</p></section>
   <section *ngIf="user()?.role==='owner' && ownerPage==='financials'" class="panel"><h1>Financials</h1><p>Capital, expenses, and profit are summarized on the dashboard. Detailed entry forms are not yet implemented in this frontend.</p></section>
-  <section *ngIf="user()?.role==='owner' && ownerPage==='reports'" class="panel"><h1>Reports</h1><p>Detailed reports interface is planned. No sample data is shown as real records.</p></section>
+  <section *ngIf="user()?.role==='owner' && ownerPage==='reports'" class="panel"><h1>Reports</h1><p>All-time business performance from recorded transactions.</p><button type="button" (click)="loadReport()">Refresh Report</button><p *ngIf="reportError()" class="error">{{reportError()}}</p><p *ngIf="reportLoading()">Loading report...</p><ng-container *ngIf="report() as d"><div class="cards financial-cards"><article><small>Total Capital Invested</small><h2>₱{{d.capitalInvested | number:'1.2-2'}}</h2><small>Owner contributions, independent of sales</small></article><article><small>Net Capital Contributions</small><h2>₱{{d.netCapital | number:'1.2-2'}}</h2></article><article><small>Items Sold</small><h2>{{d.unitsSold}}</h2><small>{{d.transactions}} transactions</small></article><article><small>Total Sales</small><h2>₱{{d.revenue | number:'1.2-2'}}</h2></article><article><small>Gross Profit</small><h2>₱{{d.grossProfit | number:'1.2-2'}}</h2></article><article><small>Expenses</small><h2>₱{{d.operatingExpenses | number:'1.2-2'}}</h2></article><article><small>Net Profit</small><h2>₱{{d.netProfit | number:'1.2-2'}}</h2></article></div><h2>Sales by Product</h2><div *ngFor="let p of d.products" class="product"><strong>{{p.name}}</strong><span>{{p.quantitySold}} sold · ₱{{p.revenue | number:'1.2-2'}} sales · ₱{{p.grossProfit | number:'1.2-2'}} gross profit</span></div><p *ngIf="d.products.length===0">No recorded sales yet.</p></ng-container></section>
    </div>
   </div>
   <section *ngIf="user()?.role==='staff'">
@@ -149,11 +149,13 @@ class AppComponent {
  ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'='dashboard';
  get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management'} as Record<string,string>)[this.ownerPage];}
  sidebarOpen=false;
- navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.sidebarOpen=false;if(page==='products'||page==='kiosk')this.loadProductStocks();if(page==='receipts')this.loadReceipts();}
+ navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.sidebarOpen=false;if(page==='products'||page==='kiosk')this.loadProductStocks();if(page==='receipts')this.loadReceipts();if(page==='reports')this.loadReport();}
  productStocks=signal<{productId:string;available:number|null;sold:number;stockTracked:boolean;manuallyUnavailable:boolean}[]>([]);
  stockNotice='';
  productStock(product:any){return this.productStocks().find(x=>x.productId===String(product._id||product.id))||{available:null,sold:0,stockTracked:false,manuallyUnavailable:false};}
  loadProductStocks(){this.http.get<any[]>(this.api+'/catalog/product-stock',{headers:this.headers()}).subscribe({next:r=>this.productStocks.set(r),error:()=>this.stockNotice='Could not load current stock. Please refresh.'});}
+ report=signal<any>(null);reportLoading=signal(false);reportError=signal('');
+ loadReport(){this.reportLoading.set(true);this.reportError.set('');this.http.get<any>(this.api+'/reports/overview',{headers:this.headers()}).subscribe({next:d=>{this.report.set(d);this.reportLoading.set(false);},error:()=>{this.reportError.set('Could not load reports.');this.reportLoading.set(false);}});}
  receipts=signal<any[]>([]);receiptsLoading=signal(false);receiptsError=signal('');
  checkoutConfirm=false;checkoutError='';checkoutLoading=signal(false);checkoutReceipt:any=null;
  private pendingCheckoutKey:string|null=null;
