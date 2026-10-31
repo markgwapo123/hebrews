@@ -28,6 +28,21 @@ r.patch('/products/:id',wrap(async(req,res)=>{
  const x=await Product.findByIdAndUpdate(req.params.id,{$set:changes},{new:true,runValidators:true});if(!x)return res.sendStatus(404);
  await audit(req,'product.update','Product',x._id,changes);res.json(x);
 }));
+r.patch('/products/:id/link-inventory',wrap(async(req,res)=>{
+ if(!id(req.params.id)||!id(req.body?.inventoryItem))return bad(res,'Select a valid inventory item');
+ const item=await InventoryItem.findOne({_id:req.body.inventoryItem,kind:'ready_made',unit:'pcs',active:true});
+ if(!item)return bad(res,'Select an active ready-made inventory item measured in pcs');
+ const product=await Product.findById(req.params.id);
+ if(!product||!product.active)return res.status(404).json({error:'Product not found'});
+ if(await Recipe.exists({product:product._id}))return res.status(409).json({error:'This product has a recipe. Remove or manage its recipe before linking finished stock.'});
+ const existing=await Product.findOne({_id:{$ne:product._id},inventoryItem:item._id,active:true});
+ if(existing)return res.status(409).json({error:'This inventory item is already linked to another product'});
+ product.inventoryItem=item._id;
+ product.kind='ready_made';
+ await product.save();
+ await audit(req,'product.link_inventory','Product',product._id,{inventoryItem:item._id});
+ res.json(product);
+}));
 r.post('/inventory-items',wrap(async(req,res)=>{
  const {name,kind,unit,sizeOz,reorderLevel=0,sku}=req.body||{};
  if(!text(name,150)||!['ingredient','packaging','ready_made'].includes(kind)||!['g','kg','ml','l','pcs'].includes(unit)||!money(reorderLevel)||sizeOz!==undefined&&!positive(sizeOz))return bad(res);
