@@ -62,7 +62,7 @@ router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)
     item=await InventoryItem.findOne({_id:product.inventoryItem,active:true}).session(session);
     if(!item||item.kind!=='ready_made'||item.unit!=='pcs')throw Object.assign(new Error('Product stock is not a piece-based inventory item'),{status:409});
    }else{
-    [item]=await InventoryItem.create([{name:product.name+' - finished stock',kind:'ready_made',unit:'pcs',quantity:0,averageUnitCost:0,reorderLevel:0}],{session});
+    [item]=await InventoryItem.create([{name:product.name+' - finished stock',kind:'ready_made',unit:'pcs',quantity:0,averageUnitCost:0,reorderLevel:0}],{session,ordered:true});
     product.inventoryItem=item._id;
     await product.save({session});
    }
@@ -70,8 +70,8 @@ router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)
    item.averageUnitCost=Math.round(((before*item.averageUnitCost)+(quantity*unitCost))/after*10000)/10000;
    item.quantity=after;
    await item.save({session});
-   await StockMovement.create([{item:item._id,kind:'stock_in',quantityDelta:quantity,unitCostSnapshot:unitCost,createdBy:req.user._id}],{session});
-   await AuditLog.create([{actor:req.user._id,action:'product.stock_in',entity:'Product',entityId:product._id,details:{quantity,unitCost,inventoryItem:item._id}}],{session});
+   await StockMovement.create([{item:item._id,kind:'stock_in',quantityDelta:quantity,unitCostSnapshot:unitCost,createdBy:req.user._id}],{session,ordered:true});
+   await AuditLog.create([{actor:req.user._id,action:'product.stock_in',entity:'Product',entityId:product._id,details:{quantity,unitCost,inventoryItem:item._id}}],{session,ordered:true});
    result={productId:String(product._id),quantity:item.quantity};
   });
   res.status(201).json(result);
