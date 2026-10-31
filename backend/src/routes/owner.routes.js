@@ -1,4 +1,9 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
+import { Category } from '../models/Category.js';
+import { Recipe } from '../models/Recipe.js';
+import { StockMovement } from '../models/StockMovement.js';
+import { AuditLog } from '../models/AuditLog.js';
 import { requireAuth,allowRoles } from '../middleware/auth.js';
 import { Product } from '../models/Product.js';
 import { InventoryItem } from '../models/InventoryItem.js';
@@ -22,4 +27,18 @@ router.get('/sales-trend',async(req,res,next)=>{try{
  const byDate=new Map(results.map(x=>[x._id,x]));
  res.json(dates.map(date=>({date,revenue:byDate.get(date)?.revenue||0,entries:byDate.get(date)?.orders||0})));
 }catch(e){next(e);}});
+// Owner-only reset for TEST data. Keeps user accounts and credentials intact.
+// Requires an explicit confirmation phrase; deletes business records atomically.
+router.post('/reset-business-data',async(req,res,next)=>{
+ if(req.body?.confirmation!=='RESET HEBREWS DATA')return res.status(400).json({error:'Confirmation phrase does not match'});
+ const session=await mongoose.startSession();
+ try{
+  await session.withTransaction(async()=>{
+   for(const Model of [DailySale,Expense,CapitalTransaction,StockMovement,Recipe,Product,Category,InventoryItem,AuditLog]){
+    await Model.deleteMany({}, {session});
+   }
+  });
+  res.json({message:'Business data reset successfully. User accounts were preserved.'});
+ }catch(e){next(e);}finally{await session.endSession();}
+});
 export default router;
