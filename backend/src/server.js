@@ -1,12 +1,16 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import dns from 'node:dns';
+import { isIP } from 'node:net';
 import { app } from './app.js';
 
-// Optional DNS override for networks where Node.js SRV lookups are refused.
-// Set MONGODB_DNS_SERVERS=8.8.8.8,1.1.1.1 in the private .env when needed.
-const dnsServers = process.env.MONGODB_DNS_SERVERS?.split(',').map(s => s.trim()).filter(Boolean);
-if (dnsServers?.length) dns.setServers(dnsServers);
+// Use working public DNS resolvers for Atlas SRV lookups.
+// An optional MONGODB_DNS_SERVERS override must contain only valid IP addresses.
+const configuredDns = process.env.MONGODB_DNS_SERVERS?.split(',').map(s => s.trim()).filter(Boolean);
+const dnsServers = configuredDns?.length && configuredDns.every(server => isIP(server))
+  ? configuredDns
+  : ['8.8.8.8', '1.1.1.1'];
+dns.setServers(dnsServers);
 const port = Number(process.env.PORT || 5000);
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -26,6 +30,10 @@ try {
   console.log('MongoDB connected to database:', mongoose.connection.name);
   app.listen(port, () => console.log('Hebrews API listening on port', port));
 } catch (error) {
-  console.error('MongoDB connection failed:', error.name);
+  console.error('MongoDB connection failed:', {
+    name: error.name,
+    code: error.code,
+    message: String(error.message || '').replace(/mongodb(?:\+srv)?:\/\/[^\s@]+@/g, 'mongodb://[REDACTED]@')
+  });
   process.exit(1);
 }
