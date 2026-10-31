@@ -43,6 +43,26 @@ r.patch('/products/:id/link-inventory',wrap(async(req,res)=>{
  await audit(req,'product.link_inventory','Product',product._id,{inventoryItem:item._id});
  res.json(product);
 }));
+r.delete('/products/:id',wrap(async(req,res)=>{
+ if(!id(req.params.id))return bad(res);
+ const product=await Product.findOne({_id:req.params.id,active:true});
+ if(!product)return res.status(404).json({error:'Product not found'});
+ product.active=false;await product.save();
+ await audit(req,'product.archive','Product',product._id,{name:product.name});
+ res.json({message:'Product removed from active catalog. Sales history preserved.'});
+}));
+r.delete('/inventory-items/:id',wrap(async(req,res)=>{
+ if(!id(req.params.id))return bad(res);
+ const item=await InventoryItem.findOne({_id:req.params.id,active:true});
+ if(!item)return res.status(404).json({error:'Inventory item not found'});
+ if(await Product.exists({inventoryItem:item._id,active:true}))return res.status(409).json({error:'This item is linked to an active product. Remove that product first.'});
+ const recipes=await Recipe.exists({$or:[{'ingredients.inventoryItem':item._id},{'packaging.inventoryItem':item._id}]});
+ if(recipes)return res.status(409).json({error:'This item is used by a recipe. Update the recipe before removing it.'});
+ if(item.quantity>0)return res.status(409).json({error:'Item still has stock. Adjust the quantity to zero with a reason before removing it.'});
+ item.active=false;await item.save();
+ await audit(req,'inventory.archive','InventoryItem',item._id,{name:item.name});
+ res.json({message:'Inventory item removed from active inventory. Movement history preserved.'});
+}));
 r.post('/inventory-items',wrap(async(req,res)=>{
  const {name,kind,unit,sizeOz,reorderLevel=0,sku}=req.body||{};
  if(!text(name,150)||!['ingredient','packaging','ready_made'].includes(kind)||!['g','kg','ml','l','pcs'].includes(unit)||!money(reorderLevel)||sizeOz!==undefined&&!positive(sizeOz))return bad(res);
