@@ -20,8 +20,8 @@ r.post('/receive',wrap(async(req,res)=>{
   const before=item.quantity,after=before+quantity;
   item.averageUnitCost=Math.round(((before*item.averageUnitCost)+(quantity*unitCost))/after*10000)/10000;
   item.quantity=after;await item.save({session});
-  const [movement]=await StockMovement.create([{item:item._id,kind:'stock_in',quantityDelta:quantity,unitCostSnapshot:unitCost,createdBy:req.user._id}],{session});
-  await AuditLog.create([{actor:req.user._id,action:'stock.receive',entity:'InventoryItem',entityId:item._id,details:{quantity,unitCost}}],{session});
+  const [movement]=await StockMovement.create([{item:item._id,kind:'stock_in',quantityDelta:quantity,unitCostSnapshot:unitCost,createdBy:req.user._id}],{session,ordered:true});
+  await AuditLog.create([{actor:req.user._id,action:'stock.receive',entity:'InventoryItem',entityId:item._id,details:{quantity,unitCost}}],{session,ordered:true});
   result={item,movement};
  });res.status(201).json(result);
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
@@ -35,8 +35,8 @@ r.post('/adjust',wrap(async(req,res)=>{
   if(!item)throw Object.assign(new Error('Inventory item not found'),{status:404});
   if(item.quantity+quantityDelta<0)throw Object.assign(new Error('Insufficient stock'),{status:409});
   item.quantity+=quantityDelta;await item.save({session});
-  const [movement]=await StockMovement.create([{item:item._id,kind:quantityDelta<0?'waste':'adjustment',quantityDelta,reason:reason.trim(),unitCostSnapshot:item.averageUnitCost,createdBy:req.user._id}],{session});
-  await AuditLog.create([{actor:req.user._id,action:'stock.adjust',entity:'InventoryItem',entityId:item._id,details:{quantityDelta,reason}}],{session});
+  const [movement]=await StockMovement.create([{item:item._id,kind:quantityDelta<0?'waste':'adjustment',quantityDelta,reason:reason.trim(),unitCostSnapshot:item.averageUnitCost,createdBy:req.user._id}],{session,ordered:true});
+  await AuditLog.create([{actor:req.user._id,action:'stock.adjust',entity:'InventoryItem',entityId:item._id,details:{quantityDelta,reason}}],{session,ordered:true});
   result={item,movement};
  });res.json(result);
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
