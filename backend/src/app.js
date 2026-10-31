@@ -2,19 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
-
-const app = express();
+import authRoutes from './routes/auth.routes.js';
+import catalogRoutes from './routes/catalog.routes.js';
+import inventoryRoutes from './routes/inventory.routes.js';
+import ownerRoutes from './routes/owner.routes.js';
+const app=express();
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:4200' }));
-app.use(express.json({ limit: '1mb' }));
-
-app.get('/api/health', (_req, res) => res.json({
-  status: 'ok',
-  app: 'Hebrews',
-  database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-}));
-
-// Phase 1 foundation only: protected CRUD and sales posting routes are not yet exposed.
-// All future write endpoints require authentication, RBAC, validation and audit logs.
-app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
-export { app };
+app.use(cors({origin:process.env.FRONTEND_ORIGIN||'http://localhost:4200'}));
+app.use(express.json({limit:'1mb'}));
+app.get('/api/health',(_req,res)=>res.json({status:'ok',database:mongoose.connection.readyState===1?'connected':'disconnected'}));
+app.use('/api/auth',authRoutes);
+app.use('/api/catalog',catalogRoutes);
+app.use('/api/inventory',inventoryRoutes);
+app.use('/api/owner',ownerRoutes);
+app.use((_req,res)=>res.status(404).json({error:'Route not found'}));
+app.use((err,_req,res,_next)=>{
+ console.error('API error:',err.message);
+ if(err.code===11000)return res.status(409).json({error:'Duplicate record'});
+ if(err.name==='ValidationError'||err.name==='CastError')return res.status(400).json({error:'Invalid request data'});
+ res.status(500).json({error:'Internal server error'});
+});
+export {app};
