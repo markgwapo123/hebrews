@@ -34,7 +34,7 @@ r.post('/',wrap(async(req,res)=>{
   for(const entry of items){
    const product=byProduct.get(entry.productId),qty=entry.quantity;
    let components=[];
-   if(product.kind==='prepared'){
+   if(product.kind==='prepared'&&!product.inventoryItem){
     const recipe=byRecipe.get(entry.productId);
     if(!recipe||!recipe.ingredients.length)throw Object.assign(new Error('Prepared product requires recipe'),{status:409});
     components=[...recipe.ingredients,...recipe.packaging];
@@ -55,7 +55,7 @@ r.post('/',wrap(async(req,res)=>{
   }
   for(const line of lines){
    const product=byProduct.get(String(line.product)),recipe=byRecipe.get(String(line.product));
-   const components=product.kind==='prepared'?[...recipe.ingredients,...recipe.packaging]:[{inventoryItem:product.inventoryItem,quantity:1}];
+   const components=product.kind==='prepared'&&!product.inventoryItem?[...recipe.ingredients,...recipe.packaging]:[{inventoryItem:product.inventoryItem,quantity:1}];
    const cost=components.reduce((sum,c)=>sum+c.quantity*stockById.get(String(c.inventoryItem)).averageUnitCost,0);
    line.unitCostSnapshot=Math.round(cost*100)/100;
    line.lineRevenue=Math.round(line.unitPriceSnapshot*line.quantity*100)/100;
