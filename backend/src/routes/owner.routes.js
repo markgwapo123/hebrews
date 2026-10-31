@@ -14,4 +14,12 @@ router.get('/summary',async(req,res,next)=>{try{
  const capitalWithdrawn=capital.filter(c=>c._id==='withdrawal').reduce((sum,c)=>sum+c.total,0);
  res.json({products,lowStock:inventory.filter(i=>i.quantity<=i.reorderLevel).length,revenue,cogs,grossProfit:revenue-cogs,operatingExpenses,netProfit:revenue-cogs-operatingExpenses,inventoryCostValue,capitalInvested,capitalWithdrawn,netCapital:capitalInvested-capitalWithdrawn});
 }catch(e){next(e);}});
+router.get('/sales-trend',async(req,res,next)=>{try{
+ const days=7;
+ const now=new Date();
+ const dates=Array.from({length:days},(_,i)=>{const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-(days-1-i)));return d.toISOString().slice(0,10);});
+ const results=await DailySale.aggregate([{$match:{status:'posted',businessDate:{$gte:dates[0],$lte:dates[days-1]}}},{$group:{_id:'$businessDate',revenue:{$sum:'$totalRevenue'},orders:{$sum:1}}},{$sort:{_id:1}}]);
+ const byDate=new Map(results.map(x=>[x._id,x]));
+ res.json(dates.map(date=>({date,revenue:byDate.get(date)?.revenue||0,entries:byDate.get(date)?.orders||0})));
+}catch(e){next(e);}});
 export default router;
