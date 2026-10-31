@@ -33,6 +33,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
      <button type="button" [class.selected]="ownerPage==='financials'" (click)="navigateOwner('financials')"><span class="nav-icon">◇</span><span>Financials</span></button>
      <button type="button" [class.selected]="ownerPage==='receipts'" (click)="navigateOwner('receipts')"><span class="nav-icon">▤</span><span>Sales Receipts</span></button>
      <button type="button" [class.selected]="ownerPage==='reports'" (click)="navigateOwner('reports')"><span class="nav-icon">▧</span><span>Reports</span></button>
+     <button type="button" [class.selected]="ownerPage==='data-management'" (click)="navigateOwner('data-management')"><span class="nav-icon">⚙</span><span>Data Management</span></button>
     </nav>
     <div class="sidebar-footer"><span class="status-dot"></span> OWNER ACCOUNT <button type="button" class="signout-link" (click)="logout()">Sign out</button></div>
    </aside>
@@ -43,7 +44,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
    <div class="dashboard-heading"><div><p class="eyebrow">BUSINESS OVERVIEW</p><h1>Dashboard</h1></div><span class="dashboard-live"><span></span> Live data</span></div>
    <p>Welcome back, {{user()?.name}}. Here’s an overview of your business performance.</p>
    <div class="cards financial-cards" aria-label="Business performance metrics"><article><small>Total Products</small><h2>{{summary()?.products ?? '—'}}</h2></article><article><small>Total Sales</small><h2>₱{{summary()?.revenue ?? 0 | number:'1.2-2'}}</h2><small>Posted sales only</small></article><article><small>Total Capital Invested</small><h2>₱{{summary()?.capitalInvested ?? 0 | number:'1.2-2'}}</h2><small>Owner contributions</small></article><article><small>Net Capital Contributions</small><h2>₱{{summary()?.netCapital ?? 0 | number:'1.2-2'}}</h2><small>Contributions less withdrawals</small></article><article><small>Remaining Inventory Value</small><h2>₱{{summary()?.inventoryCostValue ?? 0 | number:'1.2-2'}}</h2><small>Stock quantity × average cost</small></article><article><small>Gross Profit</small><h2>₱{{summary()?.grossProfit ?? 0 | number:'1.2-2'}}</h2></article><article><small>Operating Expenses</small><h2>₱{{summary()?.operatingExpenses ?? 0 | number:'1.2-2'}}</h2></article><article><small>Net Profit</small><h2>₱{{summary()?.netProfit ?? 0 | number:'1.2-2'}}</h2></article><article><small>Low Stock Items</small><h2>{{summary()?.lowStock ?? '—'}}</h2></article></div>
-   <section class="panel"><h2>Reset Business Data</h2><p>Delete all test products, inventory, sales, receipts, capital, expenses and reports. Login accounts are preserved.</p><button type="button" (click)="openReset()">Reset Business Data</button></section><section class="panel sales-chart-panel" aria-label="Sales overview">
+<section class="panel sales-chart-panel" aria-label="Sales overview">
     <div class="sales-chart-header"><div><h2>Sales Overview</h2><p>Recorded revenue over the last 7 days</p></div><span class="sales-chart-period">Last 7 days</span></div>
     <div *ngIf="salesTrendLoading()" class="chart-message">Loading sales data...</div>
     <div *ngIf="!salesTrendLoading() && salesTrendError()" class="chart-message error">{{salesTrendError()}}</div>
@@ -65,6 +66,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
    </section>
   </section>
   <div *ngIf="resetOpen" class="modal-backdrop" (click)="closeReset()"><section class="product-modal" role="dialog" aria-modal="true" aria-label="Reset business data" (click)="$event.stopPropagation()"><h2>Reset All Business Data?</h2><p>This permanently deletes products, inventory, recipes, sales, receipts, capital, expenses and audit history. Your login accounts remain.</p><p class="error">This cannot be undone. Back up important data first.</p><label>Type RESET HEBREWS DATA to confirm<input name="resetConfirmation" [(ngModel)]="resetConfirmation" autocomplete="off"></label><p *ngIf="resetError" class="error" role="alert">{{resetError}}</p><div class="modal-actions"><button type="button" class="secondary-button" [disabled]="resetLoading()" (click)="closeReset()">Cancel</button><button type="button" [disabled]="resetLoading() || resetConfirmation!=='RESET HEBREWS DATA'" (click)="resetBusinessData()">{{resetLoading()?'Resetting...':'Permanently Reset'}}</button></div></section></div>
+  <section *ngIf="user()?.role==='owner' && ownerPage==='data-management'" class="panel"><p class="eyebrow">OWNER SETTINGS</p><h1>Data Management</h1><p>Manage test data and system records. This section is available only to the owner.</p><div class="panel"><h2>Reset Business Data</h2><p>Delete all products, categories, inventory, recipes, sales, receipts, capital, expenses, stock movements and audit history. Owner and staff login accounts remain unchanged.</p><p class="error">Permanent action. Back up important business data before resetting.</p><button type="button" (click)="openReset()">Reset Business Data</button></div></section>
   <section *ngIf="user()?.role==='owner' && ownerPage==='kiosk'" class="kiosk">
     <p class="eyebrow">LIVE SALES · KIOSK ORDERING</p><h1>Kiosk Ordering</h1><p>Select products, review the order, and confirm checkout to record the sale and deduct inventory.</p>
     <p *ngIf="stockNotice" class="stock-notice" role="alert">{{stockNotice}}</p><div class="kiosk-layout"><div class="kiosk-grid">
@@ -144,8 +146,8 @@ class AppComponent {
  private http=inject(HttpClient);
  private api='http://localhost:5000/api';
  email='';password='';showPassword=false;
- ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'='dashboard';
- get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports'} as Record<string,string>)[this.ownerPage];}
+ ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'='dashboard';
+ get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management'} as Record<string,string>)[this.ownerPage];}
  sidebarOpen=false;
  navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.sidebarOpen=false;if(page==='products'||page==='kiosk')this.loadProductStocks();if(page==='receipts')this.loadReceipts();}
  productStocks=signal<{productId:string;available:number|null;sold:number;stockTracked:boolean;manuallyUnavailable:boolean}[]>([]);
