@@ -59,11 +59,29 @@ router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
 }));
 router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
- const {name,category,kind,sellingPrice,purchaseCost=0,inventoryItem}=req.body||{};
- if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice)||!money(purchaseCost))return bad(res);
+ const {name,category,kind,sellingPrice,purchaseCost=0,inventoryItem,ingredients,packaging}=req.body||{};
+ if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice)||!money(purchaseCost))return bad(res,'Valid product details and prices required');
  if(!await Category.exists({_id:category,active:true}))return bad(res,'Category not found');
- 
- const x=await Product.create({name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:kind==='ready_made'&&id(inventoryItem)?inventoryItem:null});
- await AuditLog.create({actor:req.user._id,action:'product.create',entity:'Product',entityId:x._id});res.status(201).json(x);
+ let recipeIngredients=[],recipePackaging=[];
+ if(kind==='prepared'){
+  if(!Array.isArray(ingredients)||!Array.isArray(packaging))return bad(res,'Recipe ingredients and packaging required');
+  recipeIngredients=ingredients;recipePackaging=packaging;
+  const all=[...recipeIngredients,...recipePackaging],keys=new Set();
+  if(!all.length)return bad(res,'Add at least one ingredient or packaging item');
+  for(const c of all){if(!id(c.inventoryItem)||!Number.isFinite(Number(c.quantity))||Number(c.quantity)<=0||keys.has(String(c.inventoryItem)))return bad(res,'Invalid or duplicate recipe component');keys.add(String(c.inventoryItem));}
+  const stock=await InventoryItem.find({_id:{$in:[...keys]},active:true}).lean();
+  if(stock.length!==keys.size)return bad(res,'Inventory item missing or inactive');
+  const types=new Map(stock.map(i=>[String(i._id),i.kind]));
+  if(recipeIngredients.some(c=>types.get(String(c.inventoryItem))!=='ingredient')||recipePackaging.some(c=>types.get(String(c.inventoryItem))!=='packaging'))return bad(res,'Recipe component type does not match inventory');
+ }else if(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',active:true})){
+  return bad(res,'Choose a ready-made inventory item');
+ }
+ const session=await mongoose.startSession();let product;
+ try{await session.withTransaction(async()=>{
+  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:kind==='ready_made'?inventoryItem:null}],{session,ordered:true});
+  if(kind==='prepared')await Recipe.create([{product:product._id,ingredients:recipeIngredients,packaging:recipePackaging}],{session,ordered:true});
+  await AuditLog.create([{actor:req.user._id,action:'product.create',entity:'Product',entityId:product._id}],{session,ordered:true});
+ });}finally{await session.endSession();}
+ res.status(201).json(product);
 }));
 export default router;
