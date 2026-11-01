@@ -28,18 +28,49 @@ r.post('/',wrap(async(req,res)=>{
   const products=await Product.find({_id:{$in:productIds},active:true,manuallyUnavailable:false}).session(session);
   if(products.length!==items.length)throw Object.assign(new Error('Product missing or unavailable'),{status:409});
   const byProduct=new Map(products.map(p=>[String(p._id),p]));
-  const lines=items.map(entry=>{
-   const product=products.find(p=>String(p._id)===entry.productId);
-   const qty=entry.quantity;
-   const unitPriceSnapshot=Number(product.sellingPrice)||0;
-   const unitCostSnapshot=Number(product.purchaseCost)||0;
-   return {product:product._id,quantity:qty,unitPriceSnapshot,unitCostSnapshot,
-    lineRevenue:Math.round(unitPriceSnapshot*qty*100)/100,
-    lineCost:Math.round(unitCostSnapshot*qty*100)/100};
-  });
+  const recipes=await Recipe.find({product:{$in:productIds}}).session(session);
+  const byRecipe=new Map(recipes.map(recipe=>[String(recipe.product),recipe]));
+  const demand=new Map(),lines=[],componentByProduct=new Map();
+  for(const entry of items){
+   const product=byProduct.get(entry.productId),qty=entry.quantity;
+   let components;
+   if(product.inventoryItem){
+    components=[{inventoryItem:product.inventoryItem,quantity:1}];
+   }else{
+    const recipe=byRecipe.get(entry.productId);
+    if(!recipe||!recipe.ingredients?.length)throw Object.assign(new Error('Connect inventory or a recipe for '+product.name+' before checkout.'),{status:409});
+    components=[...recipe.ingredients,...(recipe.packaging||[])];
+   }
+   componentByProduct.set(entry.productId,components);
+   for(const component of components){
+    const key=String(component.inventoryItem),amount=Number(component.quantity)*qty;
+    if(!Number.isFinite(amount)||amount<=0)throw Object.assign(new Error('Invalid recipe quantity for '+product.name),{status:409});
+    demand.set(key,(demand.get(key)||0)+amount);
+   }
+   lines.push({product:product._id,quantity:qty,unitPriceSnapshot:product.sellingPrice});
+  }
+  const stock=await InventoryItem.find({_id:{$in:[...demand.keys()]},active:true}).session(session);
+  if(stock.length!==demand.size)throw Object.assign(new Error('Required inventory item is missing or inactive.'),{status:409});
+  const stockById=new Map(stock.map(item=>[String(item._id),item]));
+  for(const [key,qty] of demand){
+   const item=stockById.get(key);
+   if(item.quantity+1e-8<qty)throw Object.assign(new Error('Insufficient inventory: '+item.name),{status:409});
+  }
+  for(const line of lines){
+   const components=componentByProduct.get(String(line.product));
+   const cost=components.reduce((sum,c)=>sum+Number(c.quantity)*stockById.get(String(c.inventoryItem)).averageUnitCost,0);
+   line.unitCostSnapshot=Math.round(cost*100)/100;
+   line.lineRevenue=Math.round(line.unitPriceSnapshot*line.quantity*100)/100;
+   line.lineCost=Math.round(line.unitCostSnapshot*line.quantity*100)/100;
+  }
+  for(const [key,qty] of [...demand].sort(([x],[y])=>x.localeCompare(y))){
+   const updated=await InventoryItem.updateOne({_id:key,active:true,quantity:{$gte:qty}},{$inc:{quantity:-qty}},{session});
+   if(updated.modifiedCount!==1)throw Object.assign(new Error('Inventory changed during checkout; please retry.'),{status:409});
+  }
   const totalRevenue=Math.round(lines.reduce((s,l)=>s+l.lineRevenue,0)*100)/100;
   const totalCost=Math.round(lines.reduce((s,l)=>s+l.lineCost,0)*100)/100;
   [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,totalCost,recordedBy:req.user._id}],{session,ordered:true});
+  await StockMovement.create([...demand].map(([key,qty])=>({item:key,kind:'sale',quantityDelta:-qty,unitCostSnapshot:stockById.get(key).averageUnitCost,referenceId:saved._id,createdBy:req.user._id})),{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'sale.post',entity:'DailySale',entityId:saved._id,details:{businessDate,entryKey,totalRevenue,totalCost}}],{session,ordered:true});
  });
  res.status(201).json(saved);
