@@ -76,4 +76,26 @@ r.post('/',wrap(async(req,res)=>{
  res.status(201).json(saved);
  }catch(e){if(e.code===11000)return res.status(409).json({error:'Entry key already posted'});if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
 }));
+r.post('/:saleId/void',wrap(async(req,res)=>{
+ if(!id(req.params.saleId))return bad(res,'Invalid sale ID');
+ const session=await mongoose.startSession();let result;
+ try{
+  await session.withTransaction(async()=>{
+   const sale=await DailySale.findById(req.params.saleId).session(session);
+   if(!sale)throw Object.assign(new Error('Sale not found'),{status:404});
+   if(sale.status!=='posted')throw Object.assign(new Error('Sale already voided'),{status:409});
+   const movements=await StockMovement.find({referenceId:sale._id,kind:'sale'}).session(session);
+   if(!movements.length)throw Object.assign(new Error('Sale has no stock movement history; cannot safely restore inventory'),{status:409});
+   for(const movement of movements){
+    const updated=await InventoryItem.updateOne({_id:movement.item},{$inc:{quantity:-movement.quantityDelta}},{session});
+    if(updated.modifiedCount!==1)throw Object.assign(new Error('Inventory item missing during void'),{status:409});
+    await StockMovement.create([{item:movement.item,kind:'adjustment',quantityDelta:-movement.quantityDelta,unitCostSnapshot:movement.unitCostSnapshot,referenceId:sale._id,reason:'Void sale '+sale._id,createdBy:req.user._id}],{session,ordered:true});
+   }
+   sale.status='void';await sale.save({session});
+   await AuditLog.create([{actor:req.user._id,action:'sale.void',entity:'DailySale',entityId:sale._id,details:{reason:String(req.body?.reason||'Admin void').slice(0,300)}}],{session,ordered:true});
+   result=sale;
+  });
+  res.json(result);
+ }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
+}));
 export default r;
