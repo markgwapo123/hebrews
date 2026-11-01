@@ -18,12 +18,33 @@ router.post('/categories',allowRoles('owner'),wrap(async(req,res)=>{
 }));
 router.get('/products',wrap(async(_req,res)=>res.json(await Product.find({active:true}).populate('category','name').sort({name:1}).lean())));
 router.get('/product-stock',allowRoles('owner'),wrap(async(_req,res)=>{
- const [products,sold]=await Promise.all([
+ const [products,sold,recipes,inventory]=await Promise.all([
   Product.find({active:true}).lean(),
-  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}])
+  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}]),
+  Recipe.find().lean(),
+  InventoryItem.find({active:true}).lean()
  ]);
  const soldByProduct=new Map(sold.map(x=>[String(x._id),x.sold]));
- res.json(products.map(p=>({productId:String(p._id),available:null,sold:soldByProduct.get(String(p._id))||0,stockTracked:false,manuallyUnavailable:p.manuallyUnavailable})));
+ const recipeByProduct=new Map(recipes.map(x=>[String(x.product),x]));
+ const stockById=new Map(inventory.map(x=>[String(x._id),x]));
+ res.json(products.map(p=>{
+  let available=0,stockTracked=false;
+  if(p.kind==='ready_made'&&p.inventoryItem){
+   const item=stockById.get(String(p.inventoryItem));
+   if(item){available=Math.floor(item.quantity);stockTracked=true;}
+  }else if(p.kind==='prepared'){
+   const recipe=recipeByProduct.get(String(p._id));
+   const components=[...(recipe?.ingredients||[]),...(recipe?.packaging||[])];
+   if(components.length){
+    stockTracked=true;
+    available=Math.max(0,Math.floor(Math.min(...components.map(c=>{
+     const item=stockById.get(String(c.inventoryItem));
+     return item&&Number(c.quantity)>0?item.quantity/Number(c.quantity):0;
+    }))));
+   }
+  }
+  return {productId:String(p._id),available,sold:soldByProduct.get(String(p._id))||0,stockTracked,manuallyUnavailable:p.manuallyUnavailable};
+ }));
 }));
 router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)=>{
  const {productId}=req.params;
