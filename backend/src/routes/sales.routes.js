@@ -38,7 +38,7 @@ r.post('/',wrap(async(req,res)=>{
     components=[{inventoryItem:product.inventoryItem,quantity:1}];
    }else{
     const recipe=byRecipe.get(entry.productId);
-    if(!recipe||!recipe.ingredients?.length)throw Object.assign(new Error('Connect inventory or a recipe for '+product.name+' before checkout.'),{status:409});
+    if(!recipe||!(recipe.ingredients?.length||recipe.packaging?.length))throw Object.assign(new Error('Connect inventory or a recipe for '+product.name+' before checkout.'),{status:409});
     components=[...recipe.ingredients,...(recipe.packaging||[])];
    }
    componentByProduct.set(entry.productId,components);
