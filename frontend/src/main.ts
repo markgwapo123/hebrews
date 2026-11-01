@@ -118,7 +118,20 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
      <div class="category-create"><input name="newCategoryName" [(ngModel)]="newCategoryName" placeholder="New category name"><button type="button" class="secondary-button" [disabled]="savingCategory() || !newCategoryName.trim()" (click)="addCategory()">{{savingCategory()?'Adding...':'Add Category'}}</button></div>
      <label>Product Type<select name="productKind" [(ngModel)]="productForm.kind" required><option value="prepared">Prepared food / drink</option><option value="ready_made">Ready-made product</option></select></label>
      <div class="form-columns"><label>Selling Price (₱)<input type="number" name="sellingPrice" [(ngModel)]="productForm.sellingPrice" min="0" step="0.01" required></label><label>Purchase Cost (₱)<input type="number" name="purchaseCost" [(ngModel)]="productForm.purchaseCost" min="0" step="0.01" required></label></div>
-     <div *ngIf="productForm.kind==='prepared'" class="recipe-editor"><h3>Ingredients & Packaging per Order</h3><p class="form-hint">Choose the exact inventory items and amount used for one sale. Example: 1 Milo + 1 cup.</p><div *ngFor="let c of newProductComponents;let i=index" class="recipe-row"><select [name]="'newComponent'+i" [(ngModel)]="c.inventoryItem"><option value="">Select ingredient or cup</option><option *ngFor="let item of recipeInventoryItems" [value]="item._id">{{item.name}} ({{item.unit}}) — {{item.kind}}</option></select><input type="number" [name]="'newAmount'+i" [(ngModel)]="c.quantity" min="0.000001" step="any" aria-label="Amount used per sale"><button type="button" class="secondary-button" (click)="newProductComponents.splice(i,1)">Remove</button></div><button type="button" class="secondary-button" (click)="newProductComponents.push({inventoryItem:'',quantity:1})">+ Add Ingredient / Cup</button></div>
+     <div *ngIf="productForm.kind==='prepared'" class="recipe-editor recipe-create">
+      <div class="recipe-section-head"><div><h3>Ingredients & Packaging</h3><p>Choose inventory items and set how much is used for <strong>one order</strong>.</p></div><span class="recipe-count">{{newProductComponents.length}} items</span></div>
+      <p *ngIf="inventoryLoading()" class="form-hint">Loading inventory items...</p>
+      <p *ngIf="!inventoryLoading() && recipeInventoryItems.length===0" class="form-hint">No ingredients or packaging found. Add them in Inventory first.</p>
+      <div *ngFor="let c of newProductComponents;let i=index" class="recipe-entry">
+       <div class="recipe-entry-heading"><strong>Item {{i+1}}</strong><button type="button" class="recipe-remove" (click)="newProductComponents.splice(i,1)">Remove</button></div>
+       <div class="recipe-entry-fields">
+        <label>Ingredient / Packaging<select [name]="'newComponent'+i" [(ngModel)]="c.inventoryItem" required><option value="">Select from Inventory</option><option *ngFor="let item of recipeInventoryItems" [value]="item._id">{{item.name}} · {{item.kind==='packaging'?'Packaging':'Ingredient'}} · {{item.unit}} ({{item.quantity}} available)</option></select></label>
+        <label>Quantity per Order<input type="number" [name]="'newAmount'+i" [(ngModel)]="c.quantity" min="0.000001" step="any" required placeholder="e.g. 1"></label>
+       </div>
+      </div>
+      <button type="button" class="secondary-button recipe-add-button" [disabled]="inventoryLoading() || recipeInventoryItems.length===0" (click)="newProductComponents.push({inventoryItem:'',quantity:1})">+ Add Ingredient / Packaging</button>
+      <p class="recipe-help">Every successful checkout automatically deducts these quantities from Inventory.</p>
+     </div>
      <label *ngIf="productForm.kind==='ready_made'">Linked Ready-Made Inventory<select name="inventoryItem" [(ngModel)]="productForm.inventoryItem"><option value="">Select inventory item</option><option *ngFor="let item of readyMadeInventory()" [value]="item._id">{{item.name}} — {{item.quantity}} pcs</option></select></label>
      <p class="form-hint">Checkout deducts linked inventory or recipe ingredients. Products without either must be connected before they can be sold.</p>
      <p *ngIf="productFormError" class="error">{{productFormError}}</p>
