@@ -14,6 +14,16 @@ r.get('/',wrap(async(req,res)=>{
  if(req.query.date){if(!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date))return bad(res);filter.businessDate=req.query.date;}
  res.json(await DailySale.find(filter).populate('items.product','name').sort({createdAt:-1}).limit(100).lean());
 }));
+r.get('/daily-summary',wrap(async(req,res)=>{
+ const date=req.query.date;
+ if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return bad(res,'Valid date required');
+ const [totals,top]=await Promise.all([
+  DailySale.aggregate([{$match:{businessDate:date,status:'posted'}},{$group:{_id:null,orders:{$sum:1},revenue:{$sum:'$totalRevenue'},cogs:{$sum:'$totalCost'}}}]),
+  DailySale.aggregate([{$match:{businessDate:date,status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',quantity:{$sum:'$items.quantity'}}},{$sort:{quantity:-1}},{$limit:5},{$lookup:{from:'products',localField:'_id',foreignField:'_id',as:'product'}},{$project:{name:{$ifNull:[{$arrayElemAt:['$product.name',0]},'Product']},quantity:1}}])
+ ]);
+ const row=totals[0]||{};
+ res.json({date,orders:row.orders||0,revenue:row.revenue||0,cogs:row.cogs||0,grossProfit:(row.revenue||0)-(row.cogs||0),topProducts:top});
+}));
 r.post('/',wrap(async(req,res)=>{
  const {businessDate,entryKey,items}=req.body||{};
  if(typeof businessDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)||Number.isNaN(Date.parse(businessDate+'T00:00:00Z'))||typeof entryKey!=='string'||entryKey.length<8||entryKey.length>100||!Array.isArray(items)||items.length<1||items.length>100)return bad(res);
