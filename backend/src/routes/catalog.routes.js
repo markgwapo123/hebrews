@@ -18,31 +18,12 @@ router.post('/categories',allowRoles('owner'),wrap(async(req,res)=>{
 }));
 router.get('/products',wrap(async(_req,res)=>res.json(await Product.find({active:true}).populate('category','name').sort({name:1}).lean())));
 router.get('/product-stock',allowRoles('owner'),wrap(async(_req,res)=>{
- const [products,inventory,recipes,sold]=await Promise.all([
-  Product.find({active:true}).lean(),InventoryItem.find({active:true}).lean(),Recipe.find().lean(),
+ const [products,sold]=await Promise.all([
+  Product.find({active:true}).lean(),
   DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}])
  ]);
- const stockById=new Map(inventory.map(i=>[String(i._id),i]));
- const recipeByProduct=new Map(recipes.map(r=>[String(r.product),r]));
- const soldByProduct=new Map(sold.map(s=>[String(s._id),s.sold]));
- res.json(products.map(p=>{
-  let available=0,tracked=true;
-  if(p.inventoryItem){
-   const item=stockById.get(String(p.inventoryItem));
-   if(item)available=Math.max(0,Math.floor(item.quantity));else tracked=false;
-  }else{
-   const recipe=recipeByProduct.get(String(p._id));
-   const components=recipe?[...recipe.ingredients,...recipe.packaging]:[];
-   if(!components.length)tracked=false;
-   else{
-    const required=new Map();
-    for(const x of components){const key=String(x.inventoryItem);required.set(key,(required.get(key)||0)+x.quantity);}
-    const amounts=[...required].map(([key,qty])=>{const item=stockById.get(key);return item?Math.floor((item.quantity+1e-8)/qty):0;});
-    available=Math.max(0,Math.min(...amounts));
-   }
-  }
-  return {productId:String(p._id),available:tracked?available:null,sold:soldByProduct.get(String(p._id))||0,stockTracked:tracked,manuallyUnavailable:p.manuallyUnavailable};
- }));
+ const soldByProduct=new Map(sold.map(x=>[String(x._id),x.sold]));
+ res.json(products.map(p=>({productId:String(p._id),available:null,sold:soldByProduct.get(String(p._id))||0,stockTracked:false,manuallyUnavailable:p.manuallyUnavailable})));
 }));
 router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)=>{
  const {productId}=req.params;
@@ -81,8 +62,8 @@ router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
  const {name,category,kind,sellingPrice,purchaseCost=0,inventoryItem}=req.body||{};
  if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice)||!money(purchaseCost))return bad(res);
  if(!await Category.exists({_id:category,active:true}))return bad(res,'Category not found');
- if(kind==='ready_made'&&(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',active:true})))return bad(res,'Ready-made inventory item required');
- const x=await Product.create({name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:kind==='ready_made'?inventoryItem:null});
+ 
+ const x=await Product.create({name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:kind==='ready_made'&&id(inventoryItem)?inventoryItem:null});
  await AuditLog.create({actor:req.user._id,action:'product.create',entity:'Product',entityId:x._id});res.status(201).json(x);
 }));
 export default router;
