@@ -94,7 +94,7 @@ router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
   if(stock.length!==keys.size)return bad(res,'Inventory item missing or inactive');
   const types=new Map(stock.map(i=>[String(i._id),i.kind]));
   if(recipeIngredients.some(c=>types.get(String(c.inventoryItem))!=='ingredient')||recipePackaging.some(c=>types.get(String(c.inventoryItem))!=='packaging'))return bad(res,'Recipe component type does not match inventory');
- }else if(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',active:true})){
+ }else if(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',unit:'pcs',active:true})){
   return bad(res,'Choose a ready-made inventory item');
  }
  if(kind==='ready_made'&&await Product.exists({inventoryItem,active:true}))return res.status(409).json({error:'This ready-made inventory item is already linked to a product'});
