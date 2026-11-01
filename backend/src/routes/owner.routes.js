@@ -20,10 +20,20 @@ router.get('/summary',async(req,res,next)=>{try{
  res.json({products,unitsSold:sales[0]?.unitsSold||0,remainingUnits:inventory.reduce((sum,i)=>sum+(Number(i.quantity)||0),0),lowStock:inventory.filter(i=>i.quantity<=i.reorderLevel).length,revenue,cogs,grossProfit:revenue-cogs,operatingExpenses,netProfit:revenue-cogs-operatingExpenses,inventoryCostValue,capitalInvested,capitalWithdrawn,netCapital:capitalInvested-capitalWithdrawn});
 }catch(e){next(e);}});
 router.get('/sales-trend',async(req,res,next)=>{try{
- const days=7;
- const now=new Date();
- const dates=Array.from({length:days},(_,i)=>{const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-(days-1-i)));return d.toISOString().slice(0,10);});
- const results=await DailySale.aggregate([{$match:{status:'posted',businessDate:{$gte:dates[0],$lte:dates[days-1]}}},{$group:{_id:'$businessDate',revenue:{$sum:'$totalRevenue'},orders:{$sum:1}}},{$sort:{_id:1}}]);
+ const validDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
+ const from=req.query.from,to=req.query.to;
+ let dates=[];
+ if(from!==undefined||to!==undefined){
+  if(!validDate(from)||!validDate(to)||from>to)return res.status(400).json({error:'Valid from and to dates required'});
+  const start=new Date(from+'T00:00:00Z'),end=new Date(to+'T00:00:00Z');
+  const days=Math.round((end-start)/86400000)+1;
+  if(days>31)return res.status(400).json({error:'Select up to 31 days per chart'});
+  dates=Array.from({length:days},(_,i)=>new Date(start.getTime()+i*86400000).toISOString().slice(0,10));
+ }else{
+  const now=new Date();
+  dates=Array.from({length:7},(_,i)=>new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-(6-i))).toISOString().slice(0,10));
+ }
+ const results=await DailySale.aggregate([{$match:{status:'posted',businessDate:{$gte:dates[0],$lte:dates[dates.length-1]}}},{$group:{_id:'$businessDate',revenue:{$sum:'$totalRevenue'},orders:{$sum:1}}},{$sort:{_id:1}}]);
  const byDate=new Map(results.map(x=>[x._id,x]));
  res.json(dates.map(date=>({date,revenue:byDate.get(date)?.revenue||0,entries:byDate.get(date)?.orders||0})));
 }catch(e){next(e);}});
