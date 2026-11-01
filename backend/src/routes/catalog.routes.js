@@ -80,8 +80,8 @@ router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
 }));
 router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
- const {name,category,kind,sellingPrice,purchaseCost=0,inventoryItem,ingredients,packaging}=req.body||{};
- if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice)||!money(purchaseCost))return bad(res,'Valid product details and prices required');
+ const {name,category,kind,sellingPrice,inventoryItem,ingredients,packaging}=req.body||{};
+ if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice))return bad(res,'Valid product details and prices required');
  if(!await Category.exists({_id:category,active:true}))return bad(res,'Category not found');
  let recipeIngredients=[],recipePackaging=[];
  if(kind==='prepared'){
@@ -97,9 +97,10 @@ router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
  }else if(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',active:true})){
   return bad(res,'Choose a ready-made inventory item');
  }
+ if(kind==='ready_made'&&await Product.exists({inventoryItem,active:true}))return res.status(409).json({error:'This ready-made inventory item is already linked to a product'});
  const session=await mongoose.startSession();let product;
  try{await session.withTransaction(async()=>{
-  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:kind==='ready_made'?inventoryItem:null}],{session,ordered:true});
+  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost:0,inventoryItem:kind==='ready_made'?inventoryItem:null}],{session,ordered:true});
   if(kind==='prepared')await Recipe.create([{product:product._id,ingredients:recipeIngredients,packaging:recipePackaging}],{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'product.create',entity:'Product',entityId:product._id}],{session,ordered:true});
  });}finally{await session.endSession();}
