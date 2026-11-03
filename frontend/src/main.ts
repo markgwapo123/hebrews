@@ -182,6 +182,15 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 @media(max-width:1250px){.dashboard-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:800px){.dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dashboard-metrics .metric-card{min-height:155px;padding:17px}}
 @media(max-width:420px){.dashboard-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dashboard-metrics .metric-card{min-height:150px;padding:13px;border-radius:14px}.dashboard-metrics .metric-card h2{font-size:clamp(20px,5.5vw,27px)}.dashboard-metrics .metric-label{font-size:11px}.dashboard-metrics .metric-desc{font-size:10px}.dashboard-metrics .metric-icon{width:29px;height:29px;flex-basis:29px;font-size:16px}}
+
+/* Keep dashboard KPI headings on one line without crowding the icons. */
+.dashboard-metrics .metric-card{padding:17px 13px;gap:10px}
+.dashboard-metrics .metric-top{gap:5px;min-width:0}
+.dashboard-metrics .metric-label{font-size:clamp(9px,.78vw,12px);line-height:1.25;white-space:nowrap;letter-spacing:-.25px}
+.dashboard-metrics .metric-icon{width:28px;height:28px;flex:0 0 28px;font-size:15px;border-radius:9px}
+@media(max-width:1250px){.dashboard-metrics .metric-label{font-size:12px}}
+@media(max-width:800px){.dashboard-metrics .metric-label{font-size:clamp(10px,1.7vw,12px)}}
+@media(max-width:420px){.dashboard-metrics .metric-card{padding:12px 9px}.dashboard-metrics .metric-label{font-size:clamp(8px,2.25vw,10px)}.dashboard-metrics .metric-icon{width:23px;height:23px;flex-basis:23px;font-size:12px}}
 `]
 })
 class AppComponent {
