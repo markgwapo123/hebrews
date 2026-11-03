@@ -37,9 +37,9 @@ router.get('/sales-trend',async(req,res,next)=>{try{
   const now=new Date();
   dates=Array.from({length:7},(_,i)=>new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-(6-i))).toISOString().slice(0,10));
  }
- const results=await DailySale.aggregate([{$match:{status:'posted',businessDate:{$gte:dates[0],$lte:dates[dates.length-1]}}},{$group:{_id:'$businessDate',revenue:{$sum:'$totalRevenue'},orders:{$sum:1}}},{$sort:{_id:1}}]);
+ const results=await DailySale.aggregate([{$match:{status:'posted',businessDate:{$gte:dates[0],$lte:dates[dates.length-1]}}},{$group:{_id:'$businessDate',revenue:{$sum:'$totalRevenue'},orders:{$sum:1},unitsSold:{$sum:{$sum:'$items.quantity'}}}},{$sort:{_id:1}}]);
  const byDate=new Map(results.map(x=>[x._id,x]));
- res.json(dates.map(date=>({date,revenue:byDate.get(date)?.revenue||0,entries:byDate.get(date)?.orders||0})));
+ res.json(dates.map(date=>({date,revenue:byDate.get(date)?.revenue||0,entries:byDate.get(date)?.orders||0,unitsSold:byDate.get(date)?.unitsSold||0})));
 }catch(e){next(e);}});
 // Owner-only reset for TEST data. Keeps user accounts and credentials intact.
 // Requires an explicit confirmation phrase; deletes business records atomically.
