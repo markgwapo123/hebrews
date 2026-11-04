@@ -321,6 +321,13 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{text-align:right!important;white-space:nowrap!important;min-width:0!important}
 .kiosk-pos-layout .kiosk-cart-items .cart-qty button{width:29px!important;height:29px!important;min-width:29px!important;padding:0!important;display:grid!important;place-items:center!important;line-height:1!important}
 @media(max-width:480px){.kiosk-pos-layout .kiosk-cart-items .cart-line{grid-template-columns:minmax(0,1fr) 96px minmax(66px,.7fr)!important;column-gap:5px!important}.kiosk-pos-layout .kiosk-cart-items .cart-qty button{width:25px!important;height:25px!important;min-width:25px!important}.kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{font-size:11px!important}}
+
+/* Slim, unobtrusive scrollbar for dashboard content only. */
+.owner-page-scroll:has(.sales-chart-panel){scrollbar-width:thin!important;scrollbar-color:#c9c1b8 transparent!important}
+.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar{width:5px!important;height:5px!important}
+.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-track{background:transparent!important}
+.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb{background:#c9c1b8!important;border-radius:999px!important}
+.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb:hover{background:#a99b8e!important}
 `]
 })
 class AppComponent {
