@@ -258,6 +258,11 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .owner-page-scroll:has(.kiosk-pos-layout){padding-bottom:0!important}
 .owner-page-scroll .kiosk-pos-layout{margin-bottom:-12px!important}
 @media(max-width:760px){.owner-page-scroll .kiosk-pos-layout{margin-bottom:-8px!important}}
+
+/* Dashboard KPI amounts: smaller type to keep large peso values on one line. */
+.dashboard-metrics .metric-card h2{font-size:clamp(18px,1.55vw,25px)!important;letter-spacing:-.7px!important;line-height:1.2!important;overflow-wrap:normal!important;word-break:normal!important;white-space:nowrap!important}
+@media(max-width:760px){.dashboard-metrics .metric-card h2{font-size:clamp(17px,3.4vw,23px)!important}}
+@media(max-width:420px){.dashboard-metrics .metric-card h2{font-size:clamp(15px,4vw,19px)!important}}
 `]
 })
 class AppComponent {
