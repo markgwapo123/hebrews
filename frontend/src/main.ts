@@ -282,6 +282,16 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sales-chart-summary strong{font-size:17px!important;line-height:1.3!important}
 .sales-line-wrap{margin-top:10px!important}
 @media(max-width:760px){.sales-chart-panel{padding:13px!important}.sales-filter-panel{padding:12px!important}.sales-date-filter{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}.sales-date-filter button{grid-column:1/-1!important}.sales-chart-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}.sales-chart-summary>div{padding:10px 8px!important;min-width:0}.sales-chart-summary strong{font-size:clamp(12px,3vw,16px)!important;overflow-wrap:anywhere}}
+
+/* Slightly smaller date inputs, filter button, and sales summary cards. */
+.sales-date-filter{gap:8px!important;margin:8px 0!important}
+.sales-date-filter input{height:34px!important;min-height:34px!important;padding:5px 9px!important;font-size:11px!important}
+.sales-date-filter button{min-height:34px!important;padding:6px 12px!important;font-size:11px!important}
+.sales-chart-summary{gap:8px!important;margin:8px 0!important}
+.sales-chart-summary>div{min-height:62px!important;padding:9px 12px!important}
+.sales-chart-summary small{font-size:10px!important}
+.sales-chart-summary strong{font-size:15px!important}
+@media(max-width:760px){.sales-chart-summary>div{padding:8px!important;min-height:58px!important}.sales-chart-summary strong{font-size:clamp(11px,2.8vw,14px)!important}}
 `]
 })
 class AppComponent {
