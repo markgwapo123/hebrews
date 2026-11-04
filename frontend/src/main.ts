@@ -253,6 +253,11 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
  .owner-page-scroll .kiosk-pos-layout{grid-template-rows:minmax(0,1fr) minmax(0,auto)!important;height:auto!important;min-height:0!important}
  .kiosk-pos-layout .kiosk-fixed-cart{height:clamp(175px,31dvh,250px)!important}
 }
+
+/* Small bottom-position adjustment for the pinned kiosk order panel. */
+.owner-page-scroll:has(.kiosk-pos-layout){padding-bottom:0!important}
+.owner-page-scroll .kiosk-pos-layout{margin-bottom:-12px!important}
+@media(max-width:760px){.owner-page-scroll .kiosk-pos-layout{margin-bottom:-8px!important}}
 `]
 })
 class AppComponent {
