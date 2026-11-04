@@ -324,7 +324,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 
 /* Slim, unobtrusive scrollbar for dashboard content only. */
 .owner-page-scroll:has(.sales-chart-panel){scrollbar-width:thin!important;scrollbar-color:#c9c1b8 transparent!important}
-.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar{width:5px!important;height:5px!important}
+.owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar{width:2px!important;height:2px!important}
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-track{background:transparent!important}
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb{background:#c9c1b8!important;border-radius:999px!important}
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb:hover{background:#a99b8e!important}
