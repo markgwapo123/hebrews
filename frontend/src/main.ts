@@ -364,6 +364,20 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sales-line-scroll{width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin}
 .sales-line-svg{display:block!important;width:100%!important;min-width:700px!important;height:clamp(220px,24vw,320px)!important;max-height:none!important;preserve-aspect-ratio:none}
 @media(max-width:760px){.sales-line-svg{height:240px!important}}
+
+/* Fluid kiosk cards: scale with available laptop/desktop space without stretching imagery. */
+.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(9px,1vw,18px)!important;align-content:start!important}
+.kiosk-pos-layout .kiosk-card{width:100%!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-self:start!important;overflow:hidden!important}
+.kiosk-pos-layout .kiosk-photo-wrap{width:100%!important;box-sizing:border-box!important;aspect-ratio:16/6!important;height:auto!important;min-height:86px!important;max-height:170px!important;padding:12px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:clamp(27px,2.5vw,45px)!important;line-height:1!important;flex-shrink:0!important}
+.kiosk-pos-layout .kiosk-photo-wrap img{display:block!important;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;object-fit:contain!important;object-position:center!important}
+.kiosk-pos-layout .kiosk-info{display:flex!important;flex-direction:column!important;flex:1!important;min-width:0!important;padding:clamp(10px,1.1vw,18px)!important;gap:5px!important}
+.kiosk-pos-layout .kiosk-info strong{font-size:clamp(12px,.95vw,15px)!important;line-height:1.35!important;min-height:0!important}
+.kiosk-pos-layout .kiosk-info p{font-size:clamp(11px,.85vw,14px)!important;margin:5px 0!important}
+.kiosk-pos-layout .kiosk-info .stock-indicator{font-size:clamp(10px,.75vw,12px)!important}
+.kiosk-pos-layout .kiosk-info button{margin-top:auto!important;min-height:38px!important;font-size:clamp(11px,.8vw,13px)!important}
+@media(min-width:1600px){.kiosk-pos-layout .kiosk-photo-wrap{aspect-ratio:16/5!important;max-height:160px!important}}
+@media(min-width:761px) and (max-width:1050px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important}.kiosk-pos-layout .kiosk-photo-wrap{min-height:72px!important;aspect-ratio:16/7!important;font-size:28px!important}}
+@media(max-width:760px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-photo-wrap{min-height:65px!important;max-height:105px!important;aspect-ratio:16/7!important;font-size:26px!important;padding:8px!important}.kiosk-pos-layout .kiosk-info{padding:9px!important}.kiosk-pos-layout .kiosk-info button{min-height:34px!important}}
 `]
 })
 class AppComponent {
