@@ -228,6 +228,18 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .kiosk-pos-layout .cart-total,.kiosk-pos-layout .checkout-actions{flex-shrink:0!important}
 @media(max-width:760px){.kiosk-pos-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) minmax(170px,38%)!important;height:clamp(430px,calc(100dvh - 190px),760px)!important}.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-card{min-width:0!important}.kiosk-pos-layout .kiosk-info{padding:8px!important}.kiosk-pos-layout .kiosk-info strong{font-size:11px!important}.kiosk-pos-layout .kiosk-info p{font-size:10px!important}.kiosk-pos-layout .kiosk-photo{padding:10px 4px!important;font-size:25px!important}}
 @media(max-width:370px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Compact kiosk catalog: four cards per row on desktop/tablet, two on phones. */
+.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
+.kiosk-pos-layout .kiosk-card{min-width:0!important;border-radius:12px!important}
+.kiosk-pos-layout .kiosk-photo{padding:13px 5px!important;font-size:29px!important;min-height:78px;display:flex;align-items:center;justify-content:center}
+.kiosk-pos-layout .kiosk-info{padding:11px!important}
+.kiosk-pos-layout .kiosk-info strong{display:block;font-size:12px!important;line-height:1.3;min-height:31px;overflow-wrap:anywhere}
+.kiosk-pos-layout .kiosk-info p{font-size:11px!important;margin:7px 0!important}
+.kiosk-pos-layout .kiosk-info .stock-indicator{font-size:10px!important;line-height:1.35}
+.kiosk-pos-layout .kiosk-info button{font-size:11px!important;padding:9px 5px!important;min-height:34px}
+@media(min-width:761px) and (max-width:1050px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-info{padding:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:66px;padding:9px 4px!important;font-size:25px!important}}
+@media(max-width:760px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:62px;padding:9px 4px!important;font-size:25px!important}.kiosk-pos-layout .kiosk-info{padding:9px!important}}
 `]
 })
 class AppComponent {
