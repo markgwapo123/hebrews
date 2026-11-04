@@ -308,6 +308,11 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .kiosk-pos-layout .checkout-actions button{min-height:37px!important;padding:8px 10px!important;font-size:12px!important;border-radius:9px!important}
 .kiosk-pos-layout .checkout-actions button:disabled{opacity:.55!important;cursor:not-allowed!important}
 @media(max-width:760px){.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(150px,26dvh,215px)!important;padding:11px 12px!important}.kiosk-pos-layout .kiosk-order-heading h2{font-size:16px!important}.kiosk-pos-layout .cart-total strong:last-child{font-size:16px!important}.kiosk-pos-layout .checkout-actions button{min-height:35px!important}}
+
+/* Show at least two order rows before the Current Order list scrolls. */
+.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(205px,29dvh,280px)!important}
+.kiosk-pos-layout .kiosk-cart-items{min-height:84px!important;flex:1 1 auto!important;overflow-y:auto!important}
+@media(max-width:760px){.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(205px,32dvh,265px)!important}.kiosk-pos-layout .kiosk-cart-items{min-height:82px!important}}
 `]
 })
 class AppComponent {
