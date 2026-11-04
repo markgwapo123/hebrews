@@ -349,6 +349,15 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
  .owner-toolbar .sidebar-toggle-mobile{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-width:35px;height:35px;border:1px solid #e8dfd4;border-radius:9px;background:#fff;color:#70503a;font-size:19px;cursor:pointer}
 }
 @media(prefers-reduced-motion:reduce){.owner-shell,.owner-shell .owner-sidebar{transition:none!important}}
+
+/* Full-viewport owner workspace: remove centered max-width and outside gutters. */
+:host:has(.owner-shell){display:block!important;width:100%!important;max-width:none!important;height:100dvh!important;min-height:100dvh!important;overflow:hidden!important}
+:host:has(.owner-shell) .layout{width:100%!important;max-width:none!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;overflow:hidden!important}
+:host:has(.owner-shell) .owner-shell{width:100%!important;max-width:none!important;height:100dvh!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:hidden!important}
+:host:has(.owner-shell) .owner-sidebar{min-height:0!important}
+:host:has(.owner-shell) .owner-content{height:100%!important;min-height:0!important;overflow:hidden!important}
+:host:has(.owner-shell) .owner-page-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important}
+@media(max-width:760px){:host:has(.owner-shell) .owner-shell{height:100dvh!important}:host:has(.owner-shell) .owner-content{height:100dvh!important}}
 `]
 })
 class AppComponent {
