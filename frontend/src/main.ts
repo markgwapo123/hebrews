@@ -263,6 +263,25 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .dashboard-metrics .metric-card h2{font-size:clamp(18px,1.55vw,25px)!important;letter-spacing:-.7px!important;line-height:1.2!important;overflow-wrap:normal!important;word-break:normal!important;white-space:nowrap!important}
 @media(max-width:760px){.dashboard-metrics .metric-card h2{font-size:clamp(17px,3.4vw,23px)!important}}
 @media(max-width:420px){.dashboard-metrics .metric-card h2{font-size:clamp(15px,4vw,19px)!important}}
+
+/* Compact Sales Overview: date filter and summary boxes take less vertical space. */
+.sales-chart-panel{padding:18px 20px!important}
+.sales-chart-header{margin-bottom:12px!important;gap:10px!important}
+.sales-chart-header h2{font-size:19px!important;margin:0 0 4px!important}
+.sales-chart-header p{font-size:12px!important;line-height:1.4!important;margin:0!important}
+.sales-filter-panel{padding:14px 16px!important;margin:12px 0!important;border-radius:12px!important}
+.sales-filter-panel>strong{font-size:13px!important}
+.sales-filter-panel>small{font-size:11px!important}
+.sales-date-filter{gap:9px!important;margin:10px 0 9px!important;align-items:end!important}
+.sales-date-filter label{font-size:11px!important;gap:4px!important;min-width:0}
+.sales-date-filter input{height:38px!important;min-height:38px!important;padding:7px 10px!important;font-size:12px!important;border-radius:8px!important}
+.sales-date-filter button{min-height:38px!important;padding:8px 14px!important;font-size:12px!important;border-radius:8px!important}
+.sales-chart-summary{gap:9px!important;margin:10px 0!important}
+.sales-chart-summary>div{min-height:72px!important;padding:12px 14px!important;border-radius:11px!important}
+.sales-chart-summary small{font-size:11px!important}
+.sales-chart-summary strong{font-size:17px!important;line-height:1.3!important}
+.sales-line-wrap{margin-top:10px!important}
+@media(max-width:760px){.sales-chart-panel{padding:13px!important}.sales-filter-panel{padding:12px!important}.sales-date-filter{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}.sales-date-filter button{grid-column:1/-1!important}.sales-chart-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}.sales-chart-summary>div{padding:10px 8px!important;min-width:0}.sales-chart-summary strong{font-size:clamp(12px,3vw,16px)!important;overflow-wrap:anywhere}}
 `]
 })
 class AppComponent {
