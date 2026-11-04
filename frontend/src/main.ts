@@ -85,7 +85,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <p *ngIf="stockNotice" class="stock-notice" role="alert">{{stockNotice}}</p><div class="kiosk-layout kiosk-pos-layout"><div class="kiosk-grid kiosk-product-scroll">
       <article class="kiosk-card" *ngFor="let product of products()"><div class="kiosk-photo kiosk-photo-wrap">{{product.kind==='prepared'?'🍽️':'🥡'}}</div><div class="kiosk-info"><strong>{{product.name}}</strong><p>₱{{product.sellingPrice | number:'1.2-2'}}</p><p class="stock-indicator">{{productStock(product).sold}} sold · {{productStock(product).available}} servings available</p><button type="button" [disabled]="product.manuallyUnavailable || !productStock(product).stockTracked || (productStock(product).available ?? 0)<=0" (click)="addToCart(product)">{{product.manuallyUnavailable?'Not Available':!productStock(product).stockTracked?'Configure Inventory':(productStock(product).available ?? 0)<=0?'Out of Stock':'+ Add to Order'}}</button></div></article>
       <p *ngIf="products().length===0" class="muted">No products yet. Add products to the catalog first.</p>
-    </div><aside class="kiosk-cart kiosk-fixed-cart"><h2>Current Order</h2><div class="kiosk-cart-items"><div class="cart-line" *ngFor="let item of cart"><div><strong>{{item.name}}</strong><small>₱{{item.price | number:'1.2-2'}} each</small></div><div class="cart-qty"><button type="button" (click)="changeCartQty(item.id,-1)">−</button><span>{{item.qty}}</span><button type="button" (click)="changeCartQty(item.id,1)">+</button></div><strong>₱{{item.qty*item.price | number:'1.2-2'}}</strong></div><p *ngIf="cart.length===0">Your cart is empty.</p></div><div class="cart-total"><strong>Grand Total</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div><div class="checkout-actions"><button type="button" class="secondary-button" [disabled]="cart.length===0 || checkoutLoading()" (click)="clearCart()">Clear Order</button><button type="button" [disabled]="cart.length===0 || checkoutLoading()" (click)="openCheckout()">Checkout</button></div></aside></div>
+    </div><aside class="kiosk-cart kiosk-fixed-cart"><div class="kiosk-order-heading"><h2>Current Order</h2><span class="kiosk-order-count">{{cart.length}} {{cart.length===1 ? 'item' : 'items'}}</span></div><div class="kiosk-cart-items"><div class="cart-line" *ngFor="let item of cart"><div><strong>{{item.name}}</strong><small>₱{{item.price | number:'1.2-2'}} each</small></div><div class="cart-qty"><button type="button" (click)="changeCartQty(item.id,-1)">−</button><span>{{item.qty}}</span><button type="button" (click)="changeCartQty(item.id,1)">+</button></div><strong>₱{{item.qty*item.price | number:'1.2-2'}}</strong></div><p *ngIf="cart.length===0" class="kiosk-empty-cart">No items added yet. Select a product above.</p></div><div class="cart-total"><strong>Grand Total</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div><div class="checkout-actions"><button type="button" class="secondary-button" [disabled]="cart.length===0 || checkoutLoading()" (click)="clearCart()">Clear Order</button><button type="button" [disabled]="cart.length===0 || checkoutLoading()" (click)="openCheckout()">Checkout</button></div></aside></div>
   </section>
   <app-receipts *ngIf="user()?.role==='owner' && ownerPage==='receipts'" [receipts]="receipts()" [loading]="receiptsLoading()" [error]="receiptsError()" (refresh)="loadReceipts()" [voiding]="voidingSale()" [voidError]="voidSaleError" (voidSale)="voidReceipt($event)"></app-receipts>
   <div *ngIf="checkoutConfirm" class="modal-backdrop" (click)="closeCheckout()">
@@ -292,6 +292,22 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sales-chart-summary small{font-size:10px!important}
 .sales-chart-summary strong{font-size:15px!important}
 @media(max-width:760px){.sales-chart-summary>div{padding:8px!important;min-height:58px!important}.sales-chart-summary strong{font-size:clamp(11px,2.8vw,14px)!important}}
+
+/* Compact, professional anchored order summary. */
+.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(150px,22dvh,225px)!important;padding:13px 17px!important;border-radius:14px!important;border-color:#e8e1d8!important;box-shadow:0 3px 12px rgba(65,45,27,.035)!important;gap:0!important}
+.kiosk-pos-layout .kiosk-order-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:8px;flex-shrink:0}
+.kiosk-pos-layout .kiosk-order-heading h2{font-size:18px!important;line-height:1.3!important;margin:0!important;letter-spacing:-.3px}
+.kiosk-pos-layout .kiosk-order-count{font-size:11px;color:#7d6b5d;background:#f6f1eb;border-radius:20px;padding:5px 10px;white-space:nowrap}
+.kiosk-pos-layout .kiosk-cart-items{font-size:12px!important;min-height:0!important;scrollbar-width:thin}
+.kiosk-pos-layout .kiosk-empty-cart{font-size:11px!important;color:#998a7d!important;margin:8px 0!important;line-height:1.4!important}
+.kiosk-pos-layout .cart-line{padding:6px 0!important;gap:8px!important;font-size:12px!important}
+.kiosk-pos-layout .cart-line small{font-size:10px!important}
+.kiosk-pos-layout .cart-total{padding:9px 0!important;margin:5px 0 8px!important;font-size:14px!important;line-height:1.3!important}
+.kiosk-pos-layout .cart-total strong:last-child{font-size:18px!important;letter-spacing:-.35px}
+.kiosk-pos-layout .checkout-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important}
+.kiosk-pos-layout .checkout-actions button{min-height:37px!important;padding:8px 10px!important;font-size:12px!important;border-radius:9px!important}
+.kiosk-pos-layout .checkout-actions button:disabled{opacity:.55!important;cursor:not-allowed!important}
+@media(max-width:760px){.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(150px,26dvh,215px)!important;padding:11px 12px!important}.kiosk-pos-layout .kiosk-order-heading h2{font-size:16px!important}.kiosk-pos-layout .cart-total strong:last-child{font-size:16px!important}.kiosk-pos-layout .checkout-actions button{min-height:35px!important}}
 `]
 })
 class AppComponent {
