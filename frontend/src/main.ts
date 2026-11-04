@@ -358,6 +358,12 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 :host:has(.owner-shell) .owner-content{height:100%!important;min-height:0!important;overflow:hidden!important}
 :host:has(.owner-shell) .owner-page-scroll{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important}
 @media(max-width:760px){:host:has(.owner-shell) .owner-shell{height:100dvh!important}:host:has(.owner-shell) .owner-content{height:100dvh!important}}
+
+/* Responsive sales chart: fill dashboard width, without squeezing long date ranges. */
+.sales-chart-panel,.sales-line-wrap,.sales-line-scroll{min-width:0!important;max-width:100%!important}
+.sales-line-scroll{width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin}
+.sales-line-svg{display:block!important;width:100%!important;min-width:700px!important;height:clamp(220px,24vw,320px)!important;max-height:none!important;preserve-aspect-ratio:none}
+@media(max-width:760px){.sales-line-svg{height:240px!important}}
 `]
 })
 class AppComponent {
@@ -471,7 +477,7 @@ class AppComponent {
  get salesTrendPeriodLabel(){const d=this.salesTrend();return d.length?d[0].date.slice(5)+' to '+d[d.length-1].date.slice(5):'No dates';}
  get hasSalesTrend(){return this.salesTrend().some(p=>p.revenue>0);}
  get maxSalesRevenue(){return Math.max(1,...this.salesTrend().map(p=>p.revenue));}
- get salesLineWidth(){return Math.max(520,100+Math.max(1,this.salesTrend().length-1)*76);}
+ get salesLineWidth(){return Math.max(700,100+Math.max(1,this.salesTrend().length-1)*76);}
  salesLineX(index:number){const n=this.salesTrend().length;return n<=1?this.salesLineWidth/2:56+index*(this.salesLineWidth-100)/(n-1);}
  salesLineY(value:number,max:number){return 214-(Math.max(0,value)/Math.max(1,max))*196;}
  get salesIncomeLinePoints(){return this.salesTrend().map((p,i)=>this.salesLineX(i)+','+this.salesLineY(p.revenue,this.maxSalesRevenue)).join(' ');}
