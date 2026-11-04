@@ -20,8 +20,9 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <button type="submit" [disabled]="loading()">{{loading()?'Signing in...':'Sign in'}}</button>
    </form><p *ngIf="error()" class="error">{{error()}}</p>
   </section>
-  <div *ngIf="user()?.role==='owner'" class="owner-shell">
-   <aside class="owner-sidebar" [class.open]="sidebarOpen" aria-label="Owner sidebar">
+  <div *ngIf="user()?.role==='owner'" class="owner-shell" [class.sidebar-collapsed]="!sidebarOpen" [class.mobile-sidebar-visible]="mobileSidebarOpen">
+   <div class="sidebar-mobile-backdrop" *ngIf="mobileSidebarOpen" (click)="mobileSidebarOpen=false" aria-hidden="true"></div>
+   <aside class="owner-sidebar" [class.open]="mobileSidebarOpen" aria-label="Owner sidebar" id="hebrews-owner-sidebar">
     <div class="sidebar-brand"><span class="brand-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h12v7a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V8ZM17 9h2a3 3 0 0 1 0 6h-2M8 3v2M12 3v2M16 3v2"/></svg></span><div><strong>HEBREWS</strong><small>CAFÉ & RESTAURANT</small></div></div>
     <p class="sidebar-label">WORKSPACE</p>
     <nav class="sidebar-menu" aria-label="Owner navigation">
@@ -38,7 +39,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <div class="sidebar-footer"><span class="status-dot"></span> OWNER ACCOUNT <button type="button" class="signout-link" (click)="logout()">Sign out</button></div>
    </aside>
    <div class="owner-content">
-    <div class="owner-toolbar"><button type="button" class="sidebar-toggle" (click)="sidebarOpen=!sidebarOpen" [attr.aria-expanded]="sidebarOpen" aria-label="Toggle sidebar">☰</button><span>HEBREWS / {{pageTitle}}</span></div>
+    <div class="owner-toolbar"><button type="button" class="sidebar-toggle sidebar-toggle-desktop" (click)="sidebarOpen=!sidebarOpen" [attr.aria-expanded]="sidebarOpen" aria-controls="hebrews-owner-sidebar" [attr.aria-label]="sidebarOpen ? 'Hide sidebar' : 'Show sidebar'">☰</button><button type="button" class="sidebar-toggle sidebar-toggle-mobile" (click)="mobileSidebarOpen=!mobileSidebarOpen" [attr.aria-expanded]="mobileSidebarOpen" aria-controls="hebrews-owner-sidebar" [attr.aria-label]="mobileSidebarOpen ? 'Hide sidebar' : 'Show sidebar'">☰</button><span>HEBREWS / {{pageTitle}}</span></div>
     <div class="owner-page-scroll">
 
   <section *ngIf="user()?.role==='owner' && ownerPage==='dashboard'">
@@ -328,6 +329,26 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-track{background:transparent!important}
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb{background:#c9c1b8!important;border-radius:999px!important}
 .owner-page-scroll:has(.sales-chart-panel)::-webkit-scrollbar-thumb:hover{background:#a99b8e!important}
+
+/* Animated desktop sidebar collapse and mobile slide-out drawer. */
+.owner-shell{transition:grid-template-columns .26s ease!important}
+.owner-shell.sidebar-collapsed{grid-template-columns:0 minmax(0,1fr)!important}
+.owner-shell .owner-sidebar{min-width:0!important;transition:transform .26s ease,opacity .2s ease,padding .26s ease!important}
+.owner-shell.sidebar-collapsed .owner-sidebar{transform:translateX(-100%)!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;padding-left:0!important;padding-right:0!important;border-right:0!important}
+.owner-shell .owner-content{min-width:0!important}
+.owner-toolbar .sidebar-toggle-desktop{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-width:35px;height:35px;border:1px solid #e8dfd4;border-radius:9px;background:#fff;color:#70503a;font-size:19px;line-height:1;cursor:pointer}
+.owner-toolbar .sidebar-toggle-desktop:hover{background:#f7f1eb}
+.owner-toolbar .sidebar-toggle-mobile{display:none!important}
+.sidebar-mobile-backdrop{display:none}
+@media(max-width:760px){
+ .owner-shell,.owner-shell.sidebar-collapsed{grid-template-columns:minmax(0,1fr)!important;position:relative}
+ .owner-shell .owner-sidebar,.owner-shell.sidebar-collapsed .owner-sidebar{display:flex!important;position:fixed!important;top:0!important;left:0!important;bottom:0!important;width:min(275px,84vw)!important;height:100dvh!important;min-height:0!important;z-index:1002!important;transform:translateX(-105%)!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;padding:18px 13px!important;background:#fbfaf8!important;box-shadow:8px 0 25px #33281b1c!important;transition:transform .26s ease!important}
+ .owner-shell.mobile-sidebar-visible .owner-sidebar,.owner-shell.sidebar-collapsed.mobile-sidebar-visible .owner-sidebar{transform:translateX(0)!important;pointer-events:auto!important}
+ .owner-shell .sidebar-mobile-backdrop{display:block;position:fixed;inset:0;background:rgba(35,27,21,.38);z-index:1001}
+ .owner-toolbar .sidebar-toggle-desktop{display:none!important}
+ .owner-toolbar .sidebar-toggle-mobile{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;min-width:35px;height:35px;border:1px solid #e8dfd4;border-radius:9px;background:#fff;color:#70503a;font-size:19px;cursor:pointer}
+}
+@media(prefers-reduced-motion:reduce){.owner-shell,.owner-shell .owner-sidebar{transition:none!important}}
 `]
 })
 class AppComponent {
@@ -336,8 +357,9 @@ class AppComponent {
  email='';password='';showPassword=false;
  ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'='dashboard';
  get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management'} as Record<string,string>)[this.ownerPage];}
- sidebarOpen=false;
- navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.sidebarOpen=false;if(page==='products'||page==='kiosk')this.loadProductStocks();if(page==='receipts')this.loadReceipts();if(page==='sales')this.loadDailySales();if(page==='reports')this.loadReport();if(page==='inventory'){this.loadInventory();this.loadInventoryMovements();}if(page==='financials')this.loadCapitalHistory();}
+ sidebarOpen=true;
+ mobileSidebarOpen=false;
+ navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.mobileSidebarOpen=false;if(page==='products'||page==='kiosk')this.loadProductStocks();if(page==='receipts')this.loadReceipts();if(page==='sales')this.loadDailySales();if(page==='reports')this.loadReport();if(page==='inventory'){this.loadInventory();this.loadInventoryMovements();}if(page==='financials')this.loadCapitalHistory();}
  get remainingProductUnits(){return this.productStocks().reduce((total,stock)=>total+(stock.stockTracked?Math.max(0,Number(stock.available)||0):0),0);}
  productStocks=signal<{productId:string;available:number|null;sold:number;stockTracked:boolean;manuallyUnavailable:boolean}[]>([]);
  stockNotice='';
