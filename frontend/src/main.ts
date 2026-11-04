@@ -51,14 +51,26 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <div *ngIf="!salesTrendLoading() && salesTrendError()" class="chart-message error">{{salesTrendError()}}</div>
     <ng-container *ngIf="!salesTrendLoading() && !salesTrendError()">
       <div *ngIf="!hasSalesTrend" class="chart-empty"><strong>No sales recorded yet</strong><p>Once daily sales are posted, your revenue chart will appear here.</p></div>
-      <div *ngIf="hasSalesTrend" class="chart-scroll"><div class="chart-plot" [style.gridTemplateColumns]="'repeat('+salesTrend().length+', minmax(54px, 1fr))'" role="img" aria-label="Posted sales revenue bar chart for selected dates">
-       <div class="chart-column" *ngFor="let point of salesTrend()">
-        <span class="chart-value">₱{{point.revenue | number:'1.0-0'}}</span>
-        <div class="chart-bar-track"><div class="chart-bar" [style.height.%]="(point.revenue / maxSalesRevenue) * 100" [attr.title]="point.date + ': ₱' + point.revenue"></div></div><small [attr.title]="point.date + ': '+point.unitsSold+' units sold'">{{point.unitsSold || 0}} sold</small>
-        <span class="chart-date">{{point.date.slice(5)}}</span>
-       </div>
+      <div *ngIf="hasSalesTrend" class="sales-line-wrap">
+        <div class="sales-line-legend"><span><i class="sales-legend-income"></i> Total Income (₱)</span><span><i class="sales-legend-units"></i> Products Sold (units)</span></div>
+        <div class="sales-line-scroll">
+          <svg class="sales-line-svg" [attr.viewBox]="'0 0 '+salesLineWidth+' 260'" [style.minWidth.px]="salesLineWidth" role="img" aria-label="Daily total income and products sold line graph for the selected dates">
+            <g *ngFor="let tick of [0,1,2,3,4]">
+              <line x1="56" [attr.x2]="salesLineWidth-44" [attr.y1]="18+tick*49" [attr.y2]="18+tick*49" stroke="#eae5de" stroke-dasharray="4 5"></line>
+              <text x="48" [attr.y]="22+tick*49" text-anchor="end" class="sales-axis-label">{{maxSalesRevenue*(4-tick)/4 | number:'1.0-0'}}</text>
+              <text [attr.x]="salesLineWidth-36" [attr.y]="22+tick*49" text-anchor="start" class="sales-axis-label">{{maxSalesUnits*(4-tick)/4 | number:'1.0-0'}}</text>
+            </g>
+            <polyline [attr.points]="salesIncomeLinePoints" fill="none" stroke="#ae8052" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            <polyline [attr.points]="salesUnitsLinePoints" fill="none" stroke="#4b8e7b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            <g *ngFor="let point of salesTrend();let i=index">
+              <circle [attr.cx]="salesLineX(i)" [attr.cy]="salesLineY(point.revenue,maxSalesRevenue)" r="4.5" fill="#ae8052" stroke="#fff" stroke-width="2"><title>{{point.date}} — Income: ₱{{point.revenue | number:'1.2-2'}}</title></circle>
+              <circle [attr.cx]="salesLineX(i)" [attr.cy]="salesLineY(point.unitsSold || 0,maxSalesUnits)" r="4.5" fill="#4b8e7b" stroke="#fff" stroke-width="2"><title>{{point.date}} — Products sold: {{point.unitsSold || 0}}</title></circle>
+              <text [attr.x]="salesLineX(i)" y="246" text-anchor="middle" class="sales-axis-label">{{point.date.slice(5)}}</text>
+            </g>
+          </svg>
+        </div>
+        <p class="chart-caption">Historical posted sales · Left axis: pesos · Right axis: units · Dates shown as MM-DD</p>
       </div>
-      </div><p *ngIf="hasSalesTrend" class="chart-caption">Revenue bars and products sold per day · Posted sales only · Dates shown as MM-DD</p>
     </ng-container>
    </section>
    <section class="panel"><h2>Products</h2><p>View current catalog</p><button (click)="loadProducts()">Refresh products</button>
@@ -191,6 +203,8 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 @media(max-width:1250px){.dashboard-metrics .metric-label{font-size:12px}}
 @media(max-width:800px){.dashboard-metrics .metric-label{font-size:clamp(10px,1.7vw,12px)}}
 @media(max-width:420px){.dashboard-metrics .metric-card{padding:12px 9px}.dashboard-metrics .metric-label{font-size:clamp(8px,2.25vw,10px)}.dashboard-metrics .metric-icon{width:23px;height:23px;flex-basis:23px;font-size:12px}}
+
+.sales-line-wrap{margin-top:18px}.sales-line-legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:#776b60;margin-bottom:12px}.sales-line-legend span{display:inline-flex;align-items:center;gap:7px}.sales-line-legend i{display:inline-block;width:20px;height:3px;border-radius:3px}.sales-legend-income{background:#ae8052}.sales-legend-units{background:#4b8e7b}.sales-line-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}.sales-line-svg{display:block;width:100%;height:auto;max-height:300px;overflow:visible}.sales-axis-label{font-size:10px;fill:#897d70}.sales-line-wrap .chart-caption{margin:8px 0 0}
 `]
 })
 class AppComponent {
@@ -303,6 +317,12 @@ class AppComponent {
  get salesTrendPeriodLabel(){const d=this.salesTrend();return d.length?d[0].date.slice(5)+' to '+d[d.length-1].date.slice(5):'No dates';}
  get hasSalesTrend(){return this.salesTrend().some(p=>p.revenue>0);}
  get maxSalesRevenue(){return Math.max(1,...this.salesTrend().map(p=>p.revenue));}
+ get salesLineWidth(){return Math.max(520,100+Math.max(1,this.salesTrend().length-1)*76);}
+ salesLineX(index:number){const n=this.salesTrend().length;return n<=1?this.salesLineWidth/2:56+index*(this.salesLineWidth-100)/(n-1);}
+ salesLineY(value:number,max:number){return 214-(Math.max(0,value)/Math.max(1,max))*196;}
+ get salesIncomeLinePoints(){return this.salesTrend().map((p,i)=>this.salesLineX(i)+','+this.salesLineY(p.revenue,this.maxSalesRevenue)).join(' ');}
+ get salesUnitsLinePoints(){return this.salesTrend().map((p,i)=>this.salesLineX(i)+','+this.salesLineY(p.unitsSold||0,this.maxSalesUnits)).join(' ');}
+
  salesDateFrom='';salesDateTo='';salesDateError='';
  resetSalesTrendDates(){this.salesDateFrom='';this.salesDateTo='';this.salesDateError='';this.loadSalesTrend();}
  applySalesTrendDates(){this.salesDateError='';if(!/^\d{4}-\d{2}-\d{2}$/.test(this.salesDateFrom)||!/^\d{4}-\d{2}-\d{2}$/.test(this.salesDateTo)||this.salesDateFrom>this.salesDateTo){this.salesDateError='Select a valid start and end date.';return;}const days=Math.round((Date.parse(this.salesDateTo+'T00:00:00Z')-Date.parse(this.salesDateFrom+'T00:00:00Z'))/86400000)+1;if(!Number.isFinite(days)||days<1||days>31){this.salesDateError='Select a date range of up to 31 days.';return;}this.loadSalesTrend();}
