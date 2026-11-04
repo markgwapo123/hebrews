@@ -240,6 +240,19 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .kiosk-pos-layout .kiosk-info button{font-size:11px!important;padding:9px 5px!important;min-height:34px}
 @media(min-width:761px) and (max-width:1050px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-info{padding:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:66px;padding:9px 4px!important;font-size:25px!important}}
 @media(max-width:760px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:62px;padding:9px 4px!important;font-size:25px!important}.kiosk-pos-layout .kiosk-info{padding:9px!important}}
+
+/* Kiosk: fill the available workspace and pin Current Order to its bottom. */
+.owner-page-scroll:has(.kiosk-pos-layout){display:flex!important;flex-direction:column!important;overflow:hidden!important;padding-bottom:0!important}
+.owner-page-scroll:has(.kiosk-pos-layout)>section.kiosk{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
+.owner-page-scroll .kiosk-pos-layout{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;margin:12px 0 0!important;grid-template-rows:minmax(0,1fr) minmax(0,auto)!important}
+.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(175px,26dvh,265px)!important;box-sizing:border-box!important;align-self:end!important}
+.kiosk-pos-layout .kiosk-product-scroll{height:100%!important}
+@media(max-width:760px){
+ .owner-content:has(.kiosk-pos-layout){height:100dvh!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+ .owner-content:has(.kiosk-pos-layout) .owner-page-scroll{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
+ .owner-page-scroll .kiosk-pos-layout{grid-template-rows:minmax(0,1fr) minmax(0,auto)!important;height:auto!important;min-height:0!important}
+ .kiosk-pos-layout .kiosk-fixed-cart{height:clamp(175px,31dvh,250px)!important}
+}
 `]
 })
 class AppComponent {
