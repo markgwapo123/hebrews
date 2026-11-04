@@ -43,10 +43,10 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 
   <section *ngIf="user()?.role==='owner' && ownerPage==='dashboard'">
    <div class="dashboard-heading"><div><p class="eyebrow">BUSINESS OVERVIEW</p><h1>Dashboard</h1></div><span class="dashboard-live"><span></span> Live data</span></div>
-   <p>Welcome back, {{user()?.name}}. Here’s an overview of your business performance.</p>
+   
    <div class="dashboard-metrics" aria-label="Five key business metrics"><article class="metric-card metric-capital"><div class="metric-top"><span class="metric-label">New Capital</span><span class="metric-icon" aria-hidden="true">₱</span></div><h2>₱{{summary()?.dailyCapital ?? 0 | number:'1.2-2'}}</h2><p class="metric-desc">Capital for current session</p></article><article class="metric-card metric-sold"><div class="metric-top"><span class="metric-label">Products Sold</span><span class="metric-icon" aria-hidden="true">▣</span></div><h2>{{summary()?.unitsSold ?? 0 | number:'1.0-0'}}</h2><p class="metric-desc">Units sold this session</p></article><article class="metric-card metric-income"><div class="metric-top"><span class="metric-label">Total Income</span><span class="metric-icon" aria-hidden="true">↗</span></div><h2>₱{{summary()?.revenue ?? 0 | number:'1.2-2'}}</h2><p class="metric-desc">Completed checkout revenue</p></article><article class="metric-card metric-profit"><div class="metric-top"><span class="metric-label">Ginansya</span><span class="metric-icon" aria-hidden="true">✦</span></div><h2>₱{{summary()?.grossProfit ?? 0 | number:'1.2-2'}}</h2><p class="metric-desc">Gross profit before expenses</p></article><article class="metric-card metric-stock"><div class="metric-top"><span class="metric-label">Remaining Stock Value</span><span class="metric-icon" aria-hidden="true">▤</span></div><h2>₱{{summary()?.inventoryCostValue ?? 0 | number:'1.2-2'}}</h2><p class="metric-desc">Current inventory at cost</p></article></div>
 <section class="panel sales-chart-panel" aria-label="Sales overview">
-    <div class="sales-chart-header"><div><h2>Sales Overview</h2><p>Historical revenue and products sold — unaffected by new capital sessions</p></div><button type="button" class="sales-chart-period" (click)="resetSalesTrendDates()">↻ Last 7 Days</button></div><div class="sales-filter-panel"><strong>Choose a date range</strong><div class="sales-date-filter"><label>Start Date<input type="date" [(ngModel)]="salesDateFrom" name="salesDateFrom" [max]="salesDateTo"></label><label>End Date<input type="date" [(ngModel)]="salesDateTo" name="salesDateTo" [min]="salesDateFrom"></label><button type="button" (click)="applySalesTrendDates()" [disabled]="salesTrendLoading()">Apply Filter</button></div><small>Select up to 31 days</small></div><div *ngIf="!salesTrendLoading() && !salesTrendError()" class="sales-chart-summary"><div><small>Total Revenue</small><strong>₱{{salesTrendTotal | number:'1.2-2'}}</strong></div><div><small>Products Sold</small><strong>{{salesTrendUnitsSold}}</strong></div><div><small>Period</small><strong>{{salesTrendPeriodLabel}}</strong></div></div><p *ngIf="salesDateError" class="error" role="alert">{{salesDateError}}</p>
+    <div class="sales-chart-header"><div><h2>Sales Overview</h2></div><button type="button" class="sales-chart-period" (click)="resetSalesTrendDates()">↻ Last 7 Days</button></div><div class="sales-filter-panel"><strong>Choose a date range</strong><div class="sales-date-filter"><label>Start Date<input type="date" [(ngModel)]="salesDateFrom" name="salesDateFrom" [max]="salesDateTo"></label><label>End Date<input type="date" [(ngModel)]="salesDateTo" name="salesDateTo" [min]="salesDateFrom"></label><button type="button" (click)="applySalesTrendDates()" [disabled]="salesTrendLoading()">Apply Filter</button></div><small>Select up to 31 days</small></div><div *ngIf="!salesTrendLoading() && !salesTrendError()" class="sales-chart-summary"><div><small>Total Revenue</small><strong>₱{{salesTrendTotal | number:'1.2-2'}}</strong></div><div><small>Products Sold</small><strong>{{salesTrendUnitsSold}}</strong></div><div><small>Period</small><strong>{{salesTrendPeriodLabel}}</strong></div></div><p *ngIf="salesDateError" class="error" role="alert">{{salesDateError}}</p>
     <div *ngIf="salesTrendLoading()" class="chart-message">Loading sales data...</div>
     <div *ngIf="!salesTrendLoading() && salesTrendError()" class="chart-message error">{{salesTrendError()}}</div>
     <ng-container *ngIf="!salesTrendLoading() && !salesTrendError()">
@@ -69,11 +69,11 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
             </g>
           </svg>
         </div>
-        <p class="chart-caption">Historical posted sales · Left axis: pesos · Right axis: units · Dates shown as MM-DD</p>
+        
       </div>
     </ng-container>
    </section>
-   <section class="panel"><h2>Products</h2><p>View current catalog</p><button (click)="loadProducts()">Refresh products</button>
+   <section class="panel"><h2>Products</h2><p>View current catalog</p>
     <div *ngFor="let product of products()" class="product"><strong>{{product.name}}</strong><span>₱{{product.sellingPrice | number:'1.2-2'}}</span></div>
     <p *ngIf="products().length===0">No products loaded yet.</p>
    </section>
