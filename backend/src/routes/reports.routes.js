@@ -49,13 +49,14 @@ r.get('/cash-flow',wrap(async(req,res)=>{
  const start=new Date(from+'T00:00:00+08:00');
  const end=new Date(new Date(to+'T00:00:00+08:00').getTime()+86400000);
  if((end-start)/86400000>365)return bad(res,'Select at most 365 days');
- const [capital,expenses,stock,sales]=await Promise.all([
+ const [capital,expenses,stock,losses,sales]=await Promise.all([
   CapitalTransaction.find({date:{$lt:end}}).select('date kind amount').lean(),
   Expense.find({date:{$lt:end}}).select('date amount').lean(),
   StockMovement.find({kind:'stock_in',createdAt:{$lt:end}}).select('createdAt quantityDelta unitCostSnapshot').lean(),
+  StockMovement.find({kind:'waste',createdAt:{$lt:end}}).select('createdAt quantityDelta unitCostSnapshot').lean(),
   DailySale.find({status:'posted',businessDate:{$lte:to}}).select('businessDate totalRevenue totalCost').lean()
  ]);
- const days=calculateCashFlow({from,to,capital,expenses,stock,sales});
+ const days=calculateCashFlow({from,to,capital,expenses,stock,losses,sales});
  res.json({from,to,days});
 }));
 r.get('/audit',wrap(async(_req,res)=>res.json(await AuditLog.find().sort({createdAt:-1}).limit(200).lean())));
