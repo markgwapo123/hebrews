@@ -41,4 +41,21 @@ r.post('/adjust',wrap(async(req,res)=>{
  });res.json(result);
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
 }));
+
+r.post('/count',wrap(async(req,res)=>{
+ const {itemId,actualQuantity,reason='Physical stock count'}=req.body||{};
+ if(!id(itemId)||typeof actualQuantity!=='number'||!Number.isFinite(actualQuantity)||actualQuantity<0||typeof reason!=='string'||reason.trim().length<3||reason.length>300)return bad(res,'Valid actual quantity and reason required');
+ const session=await mongoose.startSession();let result;
+ try{await session.withTransaction(async()=>{
+  const item=await InventoryItem.findOne({_id:itemId,active:true}).session(session);
+  if(!item)throw Object.assign(new Error('Inventory item not found'),{status:404});
+  if(item.unit==='pcs'&&!Number.isSafeInteger(actualQuantity))throw Object.assign(new Error('Piece-based stock count must be a whole number'),{status:400});
+  const expectedQuantity=item.quantity,quantityDelta=actualQuantity-expectedQuantity;
+  item.quantity=actualQuantity;await item.save({session});
+  const [movement]=await StockMovement.create([{item:item._id,kind:'adjustment',quantityDelta,reason:'Physical count: '+reason.trim(),unitCostSnapshot:item.averageUnitCost,createdBy:req.user._id}],{session,ordered:true});
+  await AuditLog.create([{actor:req.user._id,action:'stock.count',entity:'InventoryItem',entityId:item._id,details:{expectedQuantity,actualQuantity,quantityDelta,reason:reason.trim(),movementId:movement._id}}],{session,ordered:true});
+  result={item,movement,expectedQuantity,actualQuantity,quantityDelta,calculatedStockOut:Math.max(0,-quantityDelta),positiveAdjustment:Math.max(0,quantityDelta)};
+ });res.status(201).json(result);
+ }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
+}));
 export default r;
