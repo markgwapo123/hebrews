@@ -65,8 +65,11 @@ r.delete('/inventory-items/:id',wrap(async(req,res)=>{
 }));
 r.post('/inventory-items',wrap(async(req,res)=>{
  const {name,kind,unit,sizeOz,reorderLevel=0,sku}=req.body||{};
- if(!text(name,150)||!['ingredient','packaging','ready_made'].includes(kind)||!['g','kg','ml','l','pcs'].includes(unit)||!money(reorderLevel)||sizeOz!==undefined&&!positive(sizeOz))return bad(res);
- const x=await InventoryItem.create({name:name.trim(),kind,unit,sizeOz,reorderLevel,...(sku?{sku}: {})});
+ if(!text(name,150)||!['ingredient','packaging','ready_made'].includes(kind)||!['g','kg','ml','l','pcs'].includes(unit)||!money(reorderLevel)||sizeOz!==undefined&&(![6,12,16,22].includes(Number(sizeOz))||kind!=='packaging'||unit!=='pcs'))return bad(res,'Valid inventory item or cup size required');
+ if(kind==='packaging'&&/^plastic cups?$/i.test(name.trim())&&sizeOz===undefined)return bad(res,'Select a cup size for plastic cups');
+ const same=await InventoryItem.find({kind,active:true});
+ if(same.some(i=>i.name.toLowerCase()===name.trim().toLowerCase()&&(i.sizeOz??null)===(sizeOz===undefined?null:Number(sizeOz))))return res.status(409).json({error:'Item already exists. Use Stock In to add quantity.'});
+ const x=await InventoryItem.create({name:name.trim(),kind,unit,...(sizeOz!==undefined?{sizeOz:Number(sizeOz)}:{}),reorderLevel,...(sku?{sku}: {})});
  await audit(req,'inventory.create','InventoryItem',x._id,{name:x.name,kind});res.status(201).json(x);
 }));
 r.patch('/inventory-items/:id',wrap(async(req,res)=>{
