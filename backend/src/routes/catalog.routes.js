@@ -20,33 +20,12 @@ router.post('/categories',allowRoles('owner'),wrap(async(req,res)=>{
 router.get('/product-variants',wrap(async(_req,res)=>res.json(await ProductVariant.find({active:true}).lean())));
 router.get('/products',wrap(async(_req,res)=>res.json(await Product.find({active:true}).populate('category','name').sort({name:1}).lean())));
 router.get('/product-stock',allowRoles('owner'),wrap(async(_req,res)=>{
- const [products,sold,recipes,inventory]=await Promise.all([
+ const [products,sold]=await Promise.all([
   Product.find({active:true}).lean(),
-  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}]),
-  Recipe.find().lean(),
-  InventoryItem.find({active:true}).lean()
+  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}])
  ]);
  const soldByProduct=new Map(sold.map(x=>[String(x._id),x.sold]));
- const recipeByProduct=new Map(recipes.map(x=>[String(x.product),x]));
- const stockById=new Map(inventory.map(x=>[String(x._id),x]));
- res.json(products.map(p=>{
-  let available=0,stockTracked=false;
-  if(p.kind==='ready_made'&&p.inventoryItem){
-   const item=stockById.get(String(p.inventoryItem));
-   if(item){available=Math.floor(item.quantity);stockTracked=true;}
-  }else if(p.kind==='prepared'){
-   const recipe=recipeByProduct.get(String(p._id));
-   const components=[...(recipe?.ingredients||[]),...(recipe?.packaging||[])];
-   if(components.length){
-    stockTracked=true;
-    available=Math.max(0,Math.floor(Math.min(...components.map(c=>{
-     const item=stockById.get(String(c.inventoryItem));
-     return item&&Number(c.quantity)>0?item.quantity/Number(c.quantity):0;
-    }))));
-   }
-  }
-  return {productId:String(p._id),available,sold:soldByProduct.get(String(p._id))||0,stockTracked,manuallyUnavailable:p.manuallyUnavailable};
- }));
+ res.json(products.map(p=>({productId:String(p._id),available:null,sold:soldByProduct.get(String(p._id))||0,stockTracked:false,manuallyUnavailable:p.manuallyUnavailable})));
 }));
 router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)=>{
  const {productId}=req.params;
@@ -85,25 +64,10 @@ router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
  const {name,category,kind,sellingPrice,inventoryItem,ingredients,packaging}=req.body||{};
  if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice))return bad(res,'Valid product details and prices required');
  if(!await Category.exists({_id:category,active:true}))return bad(res,'Category not found');
- let recipeIngredients=[],recipePackaging=[];
- if(kind==='prepared'){
-  if(!Array.isArray(ingredients)||!Array.isArray(packaging))return bad(res,'Recipe ingredients and packaging required');
-  recipeIngredients=ingredients;recipePackaging=packaging;
-  const all=[...recipeIngredients,...recipePackaging],keys=new Set();
-  if(!all.length)return bad(res,'Add at least one ingredient or packaging item');
-  for(const c of all){if(!id(c.inventoryItem)||!Number.isFinite(Number(c.quantity))||Number(c.quantity)<=0||keys.has(String(c.inventoryItem)))return bad(res,'Invalid or duplicate recipe component');keys.add(String(c.inventoryItem));}
-  const stock=await InventoryItem.find({_id:{$in:[...keys]},active:true}).lean();
-  if(stock.length!==keys.size)return bad(res,'Inventory item missing or inactive');
-  const types=new Map(stock.map(i=>[String(i._id),i.kind]));
-  if(recipeIngredients.some(c=>types.get(String(c.inventoryItem))!=='ingredient')||recipePackaging.some(c=>types.get(String(c.inventoryItem))!=='packaging'))return bad(res,'Recipe component type does not match inventory');
- }else if(!id(inventoryItem)||!await InventoryItem.exists({_id:inventoryItem,kind:'ready_made',unit:'pcs',active:true})){
-  return bad(res,'Choose a ready-made inventory item');
- }
- if(kind==='ready_made'&&await Product.exists({inventoryItem,active:true}))return res.status(409).json({error:'This ready-made inventory item is already linked to a product'});
+ // Inventory is independent; products can be created without recipes or linked stock.
  const session=await mongoose.startSession();let product;
  try{await session.withTransaction(async()=>{
-  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost:0,inventoryItem:kind==='ready_made'?inventoryItem:null}],{session,ordered:true});
-  if(kind==='prepared')await Recipe.create([{product:product._id,ingredients:recipeIngredients,packaging:recipePackaging}],{session,ordered:true});
+  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost:0,inventoryItem:null}],{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'product.create',entity:'Product',entityId:product._id}],{session,ordered:true});
  });}finally{await session.endSession();}
  res.status(201).json(product);
