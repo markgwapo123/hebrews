@@ -5,6 +5,7 @@ import {Product} from '../models/Product.js';
 import {Category} from '../models/Category.js';
 import {InventoryItem} from '../models/InventoryItem.js';
 import {Recipe} from '../models/Recipe.js';
+import {ProductVariant} from '../models/ProductVariant.js';
 import {AuditLog} from '../models/AuditLog.js';
 const r=Router();r.use(requireAuth,allowRoles('owner'));
 const audit=(req,action,entity,entityId,details)=>AuditLog.create({actor:req.user._id,action,entity,entityId,details});
@@ -95,5 +96,25 @@ r.put('/recipes/:productId',wrap(async(req,res)=>{
  if(ingredients.some(c=>kinds.get(String(c.inventoryItem))!=='ingredient')||packaging.some(c=>kinds.get(String(c.inventoryItem))!=='packaging'))return bad(res,'Incorrect component type');
  const x=await Recipe.findOneAndUpdate({product:product._id},{$set:{ingredients,packaging}},{new:true,upsert:true,runValidators:true});
  await audit(req,'recipe.update','Recipe',x._id,{product:product.id});res.json(x);
+}));
+r.get('/products/:productId/variants',wrap(async(req,res)=>{
+ if(!id(req.params.productId))return bad(res);
+ res.json(await ProductVariant.find({product:req.params.productId,active:true}).sort({sizeOz:1}).lean());
+}));
+r.put('/products/:productId/variants/:sizeOz',wrap(async(req,res)=>{
+ const sizeOz=Number(req.params.sizeOz),{sellingPrice,ingredients,packaging}=req.body||{};
+ if(!id(req.params.productId)||![6,12,16,22].includes(sizeOz)||!money(sellingPrice)||!Array.isArray(ingredients)||!Array.isArray(packaging)||!ingredients.length||!packaging.length)return bad(res,'Valid size, price, ingredients and packaging required');
+ const product=await Product.findOne({_id:req.params.productId,active:true,kind:'prepared'});
+ if(!product)return bad(res,'Active prepared product required');
+ const all=[...ingredients,...packaging],keys=new Set();
+ for(const part of all){if(!id(part.inventoryItem)||!positive(part.quantity)||keys.has(String(part.inventoryItem)))return bad(res,'Invalid or duplicate recipe ingredient');keys.add(String(part.inventoryItem));}
+ const stock=await InventoryItem.find({_id:{$in:[...keys]},active:true}).lean();
+ if(stock.length!==keys.size)return bad(res,'Inventory component missing');
+ const byId=new Map(stock.map(i=>[String(i._id),i]));
+ if(ingredients.some(i=>byId.get(String(i.inventoryItem)).kind!=='ingredient')||packaging.some(i=>byId.get(String(i.inventoryItem)).kind!=='packaging'))return bad(res,'Recipe ingredient/packaging mismatch');
+ if(!packaging.some(i=>byId.get(String(i.inventoryItem)).sizeOz===sizeOz&&byId.get(String(i.inventoryItem)).unit==='pcs'))return bad(res,'Link the matching '+sizeOz+' oz cup to this recipe');
+ const variant=await ProductVariant.findOneAndUpdate({product:product._id,sizeOz},{$set:{sellingPrice,ingredients,packaging,active:true}},{new:true,upsert:true,runValidators:true});
+ await audit(req,'product.variant.update','ProductVariant',variant._id,{product:product._id,sizeOz});
+ res.json(variant);
 }));
 export default r;
