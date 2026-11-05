@@ -61,13 +61,13 @@ router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)
  }catch(e){if(e.status)return res.status(e.status).json({error:e.message});throw e;}finally{await session.endSession();}
 }));
 router.post('/products',allowRoles('owner'),wrap(async(req,res)=>{
- const {name,category,kind,sellingPrice,inventoryItem,ingredients,packaging}=req.body||{};
- if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice))return bad(res,'Valid product details and prices required');
+ const {name,category,kind,sellingPrice,purchaseCost=0}=req.body||{};
+ if(!text(name,150)||!id(category)||!['prepared','ready_made'].includes(kind)||!money(sellingPrice)||!money(purchaseCost))return bad(res,'Valid product details and prices required');
  if(!await Category.exists({_id:category,active:true}))return bad(res,'Category not found');
  // Inventory is independent; products can be created without recipes or linked stock.
  const session=await mongoose.startSession();let product;
  try{await session.withTransaction(async()=>{
-  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost:0,inventoryItem:null}],{session,ordered:true});
+  [product]=await Product.create([{name:name.trim(),category,kind,sellingPrice,purchaseCost,inventoryItem:null}],{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'product.create',entity:'Product',entityId:product._id}],{session,ordered:true});
  });}finally{await session.endSession();}
  res.status(201).json(product);
