@@ -6,11 +6,13 @@ import {FormsModule} from '@angular/forms';
  selector:'app-receipts',standalone:true,imports:[CommonModule,FormsModule],
  template:`
  <section class="receipts">
-  <div class="heading"><div><h1>Sales Receipts</h1><p>All recorded sales, including voided transactions.</p></div><button type="button" (click)="refresh.emit()">Refresh receipts</button></div>
+  <div class="heading"><div><p class="receipt-eyebrow">TRANSACTION HISTORY</p><h1>Sales Receipts</h1><p>Review completed and voided transactions in one place.</p></div><button type="button" (click)="refresh.emit()" [disabled]="loading">{{loading?'Refreshing...':'Refresh Receipts'}}</button></div>
+  <div class="receipt-summary"><article><small>Total Receipts</small><strong>{{receipts.length}}</strong></article><article><small>Completed</small><strong>{{completedCount}}</strong></article><article><small>Voided</small><strong>{{voidedCount}}</strong></article><article><small>Completed Sales</small><strong>₱{{completedRevenue | number:'1.2-2'}}</strong></article></div>
+  <div class="receipt-tools"><div><h2>Receipt History</h2><p>Search receipts and filter by status.</p></div><div class="receipt-filters"><input type="search" [(ngModel)]="search" placeholder="Search receipt number..." aria-label="Search receipt number"><select [(ngModel)]="statusFilter" aria-label="Filter receipt status"><option value="all">All receipts</option><option value="posted">Completed</option><option value="void">Voided</option></select></div></div>
   <p *ngIf="loading">Loading receipts...</p><p *ngIf="error" class="error" role="alert">{{error}}</p>
-  <div *ngIf="!loading && !error && receipts.length===0" class="empty">No completed sales yet.</div>
+  <div *ngIf="!loading && !error && filteredReceipts.length===0" class="empty">No receipts match your search or filter.</div>
   <div class="receipt-list">
-   <button type="button" *ngFor="let receipt of receipts" class="receipt-row" (click)="selected=receipt">
+   <button type="button" *ngFor="let receipt of filteredReceipts" class="receipt-row" (click)="selected=receipt">
     <span><strong>#{{receipt._id.slice(-8).toUpperCase()}}</strong><small>{{receipt.createdAt | date:'medium'}} · {{receipt.items.length}} product line(s)</small></span>
     <span *ngIf="receipt.status==='void'" class="void-label">VOIDED</span><strong>₱{{receipt.totalRevenue | number:'1.2-2'}}</strong>
    </button>
