@@ -42,6 +42,14 @@ r.post('/',wrap(async(req,res)=>{
   const byProduct=new Map(products.map(p=>[String(p._id),p]));
   const variants=await ProductVariant.find({product:{$in:productIds},active:true}).session(session);
   const byVariant=new Map(variants.map(v=>[String(v.product)+':'+v.sizeOz,v]));
+  const recipes=await Recipe.find({product:{$in:productIds}}).session(session).lean();
+  const recipeMap=new Map(recipes.map(x=>[String(x.product),x]));
+  const inventoryIds=new Set();
+  for(const p of products)if(p.inventoryItem)inventoryIds.add(String(p.inventoryItem));
+  for(const recipe of recipes)for(const part of [...(recipe.ingredients||[]),...(recipe.packaging||[])])inventoryIds.add(String(part.inventoryItem));
+  for(const variant of variants)for(const part of [...(variant.ingredients||[]),...(variant.packaging||[])])inventoryIds.add(String(part.inventoryItem));
+  const inventory=await InventoryItem.find({_id:{$in:[...inventoryIds]},active:true}).session(session).lean();
+  const stockById=new Map(inventory.map(x=>[String(x._id),x]));
   const lines=[];
   for(const entry of items){
    const product=byProduct.get(String(entry.productId));
@@ -49,6 +57,18 @@ r.post('/',wrap(async(req,res)=>{
    const variant=entry.sizeOz===undefined?null:byVariant.get(String(product._id)+':'+Number(entry.sizeOz));
    if(entry.sizeOz!==undefined&&!variant)throw Object.assign(new Error('Selected drink size is not configured'),{status:409});
    if(entry.sizeOz===undefined&&configured)throw Object.assign(new Error('Choose a cup size'),{status:409});
+   // Availability is checked but checkout never deducts physical inventory.
+   const recipe=recipeMap.get(String(product._id));
+   const parts=variant?[...(variant.ingredients||[]),...(variant.packaging||[])]:[...(recipe?.ingredients||[]),...(recipe?.packaging||[])];
+   if(product.inventoryItem){
+    const stock=stockById.get(String(product.inventoryItem));
+    if(!stock||Number(stock.quantity)<entry.quantity)throw Object.assign(new Error('Insufficient product stock'),{status:409});
+   }
+   if(parts.length){
+    const required=new Map();
+    for(const part of parts){const key=String(part.inventoryItem);required.set(key,(required.get(key)||0)+Number(part.quantity)*entry.quantity);}
+    for(const [key,qty] of required){const stock=stockById.get(key);if(!stock||Number(stock.quantity)<qty)throw Object.assign(new Error('Insufficient ingredient or packaging stock'),{status:409});}
+   }
    const unitPrice=variant?variant.sellingPrice:product.sellingPrice;
    // Sales and inventory are independent. Product purchase cost is used for reporting.
    const unitCost=Number(variant?variant.purchaseCost:product.purchaseCost)||0;
