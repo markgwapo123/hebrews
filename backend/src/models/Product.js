@@ -9,5 +9,5 @@ const schema=new mongoose.Schema({
  manuallyUnavailable:{type:Boolean,default:false},active:{type:Boolean,default:true}
 },{timestamps:true});
 schema.index({name:1,category:1});
-schema.path('inventoryItem').validate(function(value){return this.kind!=='ready_made'||Boolean(value);},'Ready-made products require linked inventory');
+// Catalog products are independent of manually counted inventory.
 export const Product=mongoose.model('Product',schema);
