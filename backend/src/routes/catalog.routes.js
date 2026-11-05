@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Category } from '../models/Category.js';
 import { Product } from '../models/Product.js';
 import { Recipe } from '../models/Recipe.js';
+import { ProductVariant } from '../models/ProductVariant.js';
 import { DailySale } from '../models/DailySale.js';
 import { InventoryItem } from '../models/InventoryItem.js';
 import { AuditLog } from '../models/AuditLog.js';
@@ -16,6 +17,7 @@ router.post('/categories',allowRoles('owner'),wrap(async(req,res)=>{
  const x=await Category.create({name:name.trim(),description:String(req.body?.description||'').slice(0,500)});
  await AuditLog.create({actor:req.user._id,action:'category.create',entity:'Category',entityId:x._id});res.status(201).json(x);
 }));
+router.get('/product-variants',wrap(async(_req,res)=>res.json(await ProductVariant.find({active:true}).lean())));
 router.get('/products',wrap(async(_req,res)=>res.json(await Product.find({active:true}).populate('category','name').sort({name:1}).lean())));
 router.get('/product-stock',allowRoles('owner'),wrap(async(_req,res)=>{
  const [products,sold,recipes,inventory]=await Promise.all([
