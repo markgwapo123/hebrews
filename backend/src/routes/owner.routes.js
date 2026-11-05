@@ -2,6 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import { Category } from '../models/Category.js';
 import { Recipe } from '../models/Recipe.js';
+import { ProductVariant } from '../models/ProductVariant.js';
 import { StockMovement } from '../models/StockMovement.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { requireAuth,allowRoles } from '../middleware/auth.js';
@@ -48,7 +49,7 @@ router.post('/reset-business-data',async(req,res,next)=>{
  const session=await mongoose.startSession();
  try{
   await session.withTransaction(async()=>{
-   for(const Model of [DailySale,Expense,CapitalTransaction,StockMovement,Recipe,Product,Category,InventoryItem,AuditLog]){
+   for(const Model of [DailySale,Expense,CapitalTransaction,StockMovement,Recipe,ProductVariant,Product,Category,InventoryItem,AuditLog]){
     await Model.deleteMany({}, {session});
    }
   });
