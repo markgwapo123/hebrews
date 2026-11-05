@@ -4,6 +4,7 @@ const schema=new mongoose.Schema({
  product:{type:mongoose.Schema.Types.ObjectId,ref:'Product',required:true},
  sizeOz:{type:Number,required:true,enum:[6,12,16,22]},
  sellingPrice:{type:Number,required:true,min:0},
+ purchaseCost:{type:Number,default:0,min:0},
  ingredients:{type:[component],default:[]},
  packaging:{type:[component],default:[]},
  active:{type:Boolean,default:true}
