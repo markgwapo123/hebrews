@@ -7,7 +7,8 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "create-owner": "node src/scripts/create-owner.js",
-    "seed-sample-products": "node src/scripts/seed-sample-products.js"
+    "seed-sample-products": "node src/scripts/seed-sample-products.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "express": "^4.21.2",
