@@ -50,7 +50,7 @@ r.post('/',wrap(async(req,res)=>{
    if(entry.sizeOz===undefined&&configured)throw Object.assign(new Error('Choose a cup size'),{status:409});
    const unitPrice=variant?variant.sellingPrice:product.sellingPrice;
    // Sales and inventory are independent. Product purchase cost is used for reporting.
-   const unitCost=Number(product.purchaseCost)||0;
+   const unitCost=Number(variant?variant.purchaseCost:product.purchaseCost)||0;
    lines.push({product:product._id,quantity:entry.quantity,...(variant?{sizeOz:variant.sizeOz}:{}),unitPriceSnapshot:unitPrice,unitCostSnapshot:unitCost,lineRevenue:Math.round(unitPrice*entry.quantity*100)/100,lineCost:Math.round(unitCost*entry.quantity*100)/100});
   }
   const totalRevenue=Math.round(lines.reduce((s,l)=>s+l.lineRevenue,0)*100)/100;
