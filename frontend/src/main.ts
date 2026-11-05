@@ -478,7 +478,7 @@ class AppComponent {
  get selectedRecipeCost(){return this.recipeComponents.reduce((sum,c)=>{const item=this.recipeInventoryItems.find(x=>String(x._id)===c.inventoryItem);return sum+(Number(item?.averageUnitCost)||0)*(Number(c.quantity)||0);},0);}
  get newProductProfit(){return Number(this.productForm.sellingPrice)-this.newProductCost;}
  get newProductMargin(){const price=Number(this.productForm.sellingPrice);return price>0?this.newProductProfit/price*100:0;}
- get newProductCost(){if(this.productForm.kind==='ready_made'){const item=this.readyMadeInventory().find(x=>String(x._id)===this.productForm.inventoryItem);return Number(item?.averageUnitCost)||0;}return this.newProductComponents.reduce((sum,c)=>{const item=this.recipeInventoryItems.find(x=>String(x._id)===c.inventoryItem);return sum+(Number(item?.averageUnitCost)||0)*(Number(c.quantity)||0);},0);}
+ get newProductCost(){return Number(this.productForm.purchaseCost)||0;}
  get recipeInventoryItems(){return this.inventoryItems().filter(x=>x.active!==false&&['ingredient','packaging'].includes(x.kind));}
  addRecipeComponent(){this.recipeComponents.push({inventoryItem:'',quantity:1});}
  removeRecipeComponent(i:number){this.recipeComponents.splice(i,1);}
