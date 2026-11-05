@@ -40,6 +40,12 @@ export class ReceiptsComponent{
  @Output() voidSale=new EventEmitter<string>();
  @Input() voiding=false;
  @Input() voidError='';
+ search='';
+ statusFilter='all';
+ get filteredReceipts(){const q=this.search.trim().toLowerCase();return this.receipts.filter(r=>(this.statusFilter==='all'||(this.statusFilter==='void'?r.status==='void':r.status!=='void'))&&(!q||String(r._id||'').toLowerCase().includes(q)));}
+ get completedCount(){return this.receipts.filter(r=>r.status!=='void').length;}
+ get voidedCount(){return this.receipts.filter(r=>r.status==='void').length;}
+ get completedRevenue(){return this.receipts.filter(r=>r.status!=='void').reduce((sum,r)=>sum+(Number(r.totalRevenue)||0),0);}
  selected:any=null;
  requestVoid(){if(!this.selected||this.selected.status==='void'||this.voiding)return;if(window.confirm('Void this sale? The sale will be excluded from totals. Inventory stock will not change.'))this.voidSale.emit(this.selected._id);}
  print(){window.print();}
