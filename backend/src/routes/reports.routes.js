@@ -41,7 +41,7 @@ r.get('/financial',wrap(async(req,res)=>{
 
 r.get('/cash-flow',wrap(async(req,res)=>{
  const {from,to}=req.query;
- const valid=v=>typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
+ const valid=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
  if(!valid(from)||!valid(to)||from>to)return bad(res,'Valid from/to dates required');
  const start=new Date(from+'T00:00:00+08:00'),end=new Date(new Date(to+'T00:00:00+08:00').getTime()+86400000);
  if((end-start)/86400000>366)return bad(res,'Select at most 365 days');
