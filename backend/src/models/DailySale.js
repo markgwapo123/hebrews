@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 const itemSchema=new mongoose.Schema({
  product:{type:mongoose.Schema.Types.ObjectId,ref:'Product',required:true},
  quantity:{type:Number,required:true,min:1},
+ sizeOz:{type:Number,enum:[6,12,16,22]},
  unitPriceSnapshot:{type:Number,required:true,min:0},
  unitCostSnapshot:{type:Number,required:true,min:0},
  lineRevenue:{type:Number,required:true,min:0},
