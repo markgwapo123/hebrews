@@ -41,7 +41,7 @@ r.get('/financial',wrap(async(req,res)=>{
 
 r.get('/cash-flow',wrap(async(req,res)=>{
  const {from,to}=req.query;
- const valid=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
+ const valid=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
  if(!valid(from)||!valid(to)||from>to)return bad(res,'Valid from/to dates required');
  const start=new Date(from+'T00:00:00+08:00');
  const end=new Date(new Date(to+'T00:00:00+08:00').getTime()+86400000);
