@@ -102,11 +102,11 @@ r.get('/products/:productId/variants',wrap(async(req,res)=>{
  res.json(await ProductVariant.find({product:req.params.productId,active:true}).sort({sizeOz:1}).lean());
 }));
 r.put('/products/:productId/variants/:sizeOz',wrap(async(req,res)=>{
- const sizeOz=Number(req.params.sizeOz),{sellingPrice,ingredients,packaging}=req.body||{};
- if(!id(req.params.productId)||![6,12,16,22].includes(sizeOz)||!money(sellingPrice))return bad(res,'Valid cup size and price required');
+ const sizeOz=Number(req.params.sizeOz),{sellingPrice,purchaseCost}=req.body||{};
+ if(!id(req.params.productId)||![6,12,16,22].includes(sizeOz)||!money(sellingPrice)||(purchaseCost!==undefined&&!money(purchaseCost)))return bad(res,'Valid cup size, selling price and cost required');
  const product=await Product.findOne({_id:req.params.productId,active:true});
  if(!product)return bad(res,'Active product required');
- const variant=await ProductVariant.findOneAndUpdate({product:product._id,sizeOz},{$set:{sellingPrice,ingredients:[],packaging:[],active:true}},{new:true,upsert:true,runValidators:true});
+ const variant=await ProductVariant.findOneAndUpdate({product:product._id,sizeOz},{$set:{sellingPrice,...(purchaseCost!==undefined?{purchaseCost}:{}),ingredients:[],packaging:[],active:true}},{new:true,upsert:true,runValidators:true});
  await audit(req,'product.variant.update','ProductVariant',variant._id,{product:product._id,sizeOz});
  res.json(variant);
 }));
