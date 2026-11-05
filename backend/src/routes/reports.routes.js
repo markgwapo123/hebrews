@@ -38,5 +38,47 @@ r.get('/financial',wrap(async(req,res)=>{
  const revenue=sales[0]?.revenue||0,cogs=sales[0]?.cogs||0,operatingExpenses=expenses[0]?.total||0;
  res.json({from,to,revenue,cogs,grossProfit:revenue-cogs,operatingExpenses,netProfit:revenue-cogs-operatingExpenses,transactions:sales[0]?.transactions||0});
 }));
+
+r.get('/cash-flow',wrap(async(req,res)=>{
+ const {from,to}=req.query;
+ const valid=v=>typeof v==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'));
+ if(!valid(from)||!valid(to)||from>to)return bad(res,'Valid from/to dates required');
+ const start=new Date(from+'T00:00:00+08:00'),end=new Date(new Date(to+'T00:00:00+08:00').getTime()+86400000);
+ if((end-start)/86400000>366)return bad(res,'Select at most 365 days');
+ const [capital,expenses,stock,sales]=await Promise.all([
+  CapitalTransaction.find({date:{$lt:end}}).select('date kind amount').lean(),
+  Expense.find({date:{$lt:end}}).select('date amount').lean(),
+  StockMovement.find({kind:'stock_in',createdAt:{$lt:end}}).select('createdAt quantityDelta unitCostSnapshot').lean(),
+  DailySale.find({status:'posted',businessDate:{$lte:to}}).select('businessDate totalRevenue totalCost').lean()
+ ]);
+ const ph=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+ const daily=new Map();const get=d=>{if(!daily.has(d))daily.set(d,{date:d,capitalAdded:0,withdrawals:0,purchases:0,sales:0,cogs:0,expenses:0});return daily.get(d);};
+ for(const c of capital){const row=get(ph(c.date));row[c.kind==='contribution'?'capitalAdded':'withdrawals']+=c.amount;}
+ for(const e of expenses)get(ph(e.date)).expenses+=e.amount;
+ for(const m of stock)get(ph(m.createdAt)).purchases+=Math.abs(m.quantityDelta)*(m.unitCostSnapshot||0);
+ for(const sale of sales){const row=get(sale.businessDate);row.sales+=sale.totalRevenue;row.cogs+=sale.totalCost;}
+ let cash=0,capitalInvested=0;const rows=[];
+ const sorted=[...daily.keys()].sort();
+ for(const date of sorted){
+  const d=daily.get(date),openingCash=cash;
+  cash+=d.capitalAdded+d.sales-d.withdrawals-d.purchases-d.expenses;
+  capitalInvested+=d.capitalAdded;
+  if(date<from)continue;
+  rows.push({...d,openingCash,closingCash:cash,totalCapitalInvested:capitalInvested,grossProfit:d.sales-d.cogs,netProfit:d.sales-d.cogs-d.expenses});
+ }
+ // Include dates without transactions, preserving the carried-forward cash balance.
+ const byDate=new Map(rows.map(row=>[row.date,row]));const output=[];
+ for(let day=start;day<end;day=new Date(day.getTime()+86400000)){
+  const date=ph(day),record=byDate.get(date);
+  if(record){cash=record.closingCash;capitalInvested=record.totalCapitalInvested;output.push(record);}
+  else {
+   const previous=output.at(-1);
+   const openingCash=previous?previous.closingCash:sorted.filter(d=>d<date).reduce((n,d)=>{const x=daily.get(d);return n+x.capitalAdded+x.sales-x.withdrawals-x.purchases-x.expenses;},0);
+   const invested=previous?previous.totalCapitalInvested:sorted.filter(d=>d<date).reduce((n,d)=>n+daily.get(d).capitalAdded,0);
+   output.push({date,openingCash,closingCash:openingCash,totalCapitalInvested:invested,capitalAdded:0,withdrawals:0,purchases:0,sales:0,cogs:0,expenses:0,grossProfit:0,netProfit:0});
+  }
+ }
+ res.json({from,to,days:output});
+}));
 r.get('/audit',wrap(async(_req,res)=>res.json(await AuditLog.find().sort({createdAt:-1}).limit(200).lean())));
 export default r;
