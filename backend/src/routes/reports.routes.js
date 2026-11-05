@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {requireAuth,allowRoles} from '../middleware/auth.js';
 import {wrap,bad} from '../utils/validate.js';
+import {calculateCashFlow} from '../utils/cash-flow.js';
 import {DailySale} from '../models/DailySale.js';
 import {Expense} from '../models/Expense.js';
 import {AuditLog} from '../models/AuditLog.js';
@@ -53,28 +54,7 @@ r.get('/cash-flow',wrap(async(req,res)=>{
   StockMovement.find({kind:'stock_in',createdAt:{$lt:end}}).select('createdAt quantityDelta unitCostSnapshot').lean(),
   DailySale.find({status:'posted',businessDate:{$lte:to}}).select('businessDate totalRevenue totalCost').lean()
  ]);
- const ph=d=>{
-  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
-  const p=Object.fromEntries(parts.map(x=>[x.type,x.value]));
-  return p.year+'-'+p.month+'-'+p.day;
- };
- const daily=new Map();
- const get=date=>{if(!daily.has(date))daily.set(date,{date,capitalAdded:0,withdrawals:0,purchases:0,sales:0,cogs:0,expenses:0});return daily.get(date);};
- for(const c of capital)get(ph(c.date))[c.kind==='contribution'?'capitalAdded':'withdrawals']+=c.amount;
- for(const e of expenses)get(ph(e.date)).expenses+=e.amount;
- for(const m of stock)get(ph(m.createdAt)).purchases+=Math.abs(m.quantityDelta)*(m.unitCostSnapshot||0);
- for(const sale of sales){const d=get(sale.businessDate);d.sales+=sale.totalRevenue;d.cogs+=sale.totalCost;}
- const dates=[...daily.keys()].sort();let cursor=0,cash=0,capitalInvested=0;
- const apply=date=>{const d=daily.get(date);cash+=d.capitalAdded+d.sales-d.withdrawals-d.purchases-d.expenses;capitalInvested+=d.capitalAdded;};
- while(cursor<dates.length&&dates[cursor]<from){apply(dates[cursor]);cursor++;}
- const days=[];
- for(let time=start.getTime();time<end.getTime();time+=86400000){
-  const date=ph(new Date(time)),openingCash=cash;
-  while(cursor<dates.length&&dates[cursor]<date){apply(dates[cursor]);cursor++;}
-  const d=get(date);apply(date);
-  if(daily.has(date)&&dates[cursor]===date)cursor++;
-  days.push({...d,openingCash,closingCash:cash,totalCapitalInvested:capitalInvested,grossProfit:d.sales-d.cogs,netProfit:d.sales-d.cogs-d.expenses});
- }
+ const days=calculateCashFlow({from,to,capital,expenses,stock,sales});
  res.json({from,to,days});
 }));
 r.get('/audit',wrap(async(_req,res)=>res.json(await AuditLog.find().sort({createdAt:-1}).limit(200).lean())));
