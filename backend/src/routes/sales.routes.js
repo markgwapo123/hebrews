@@ -39,55 +39,23 @@ r.post('/',wrap(async(req,res)=>{
   const products=await Product.find({_id:{$in:productIds},active:true,manuallyUnavailable:false}).session(session);
   if(products.length!==new Set(items.map(x=>x.productId)).size)throw Object.assign(new Error('Product missing or unavailable'),{status:409});
   const byProduct=new Map(products.map(p=>[String(p._id),p]));
-  const recipes=await Recipe.find({product:{$in:productIds}}).session(session);
-  const byRecipe=new Map(recipes.map(recipe=>[String(recipe.product),recipe]));
   const variants=await ProductVariant.find({product:{$in:productIds},active:true}).session(session);
   const byVariant=new Map(variants.map(v=>[String(v.product)+':'+v.sizeOz,v]));
-  const demand=new Map(),lines=[],componentByProduct=new Map();
+  const lines=[];
   for(const entry of items){
-   const product=byProduct.get(entry.productId),qty=entry.quantity;
-   const variant=entry.sizeOz===undefined?null:byVariant.get(entry.productId+':'+Number(entry.sizeOz));
-   if(entry.sizeOz!==undefined&&!variant)throw Object.assign(new Error('Drink size is not configured or unavailable'),{status:409});
-   if(entry.sizeOz===undefined&&variants.some(v=>String(v.product)===entry.productId))throw Object.assign(new Error('Choose a cup size before checkout'),{status:409});
-   let components;
-   if(variant){components=[...variant.ingredients,...variant.packaging];}
-   else if(product.inventoryItem){
-    components=[{inventoryItem:product.inventoryItem,quantity:1}];
-   }else{
-    const recipe=byRecipe.get(entry.productId);
-    if(!recipe||!(recipe.ingredients?.length||recipe.packaging?.length))throw Object.assign(new Error('Connect inventory or a recipe for '+product.name+' before checkout.'),{status:409});
-    components=[...recipe.ingredients,...(recipe.packaging||[])];
-   }
-   componentByProduct.set(entry.productId+':'+String(entry.sizeOz??'default'),components);
-   for(const component of components){
-    const key=String(component.inventoryItem),amount=Number(component.quantity)*qty;
-    if(!Number.isFinite(amount)||amount<=0)throw Object.assign(new Error('Invalid recipe quantity for '+product.name),{status:409});
-    demand.set(key,(demand.get(key)||0)+amount);
-   }
-   lines.push({product:product._id,quantity:qty,...(variant?{sizeOz:variant.sizeOz}:{}),unitPriceSnapshot:variant?variant.sellingPrice:product.sellingPrice});
-  }
-  const stock=await InventoryItem.find({_id:{$in:[...demand.keys()]},active:true}).session(session);
-  if(stock.length!==demand.size)throw Object.assign(new Error('Required inventory item is missing or inactive.'),{status:409});
-  const stockById=new Map(stock.map(item=>[String(item._id),item]));
-  for(const [key,qty] of demand){
-   const item=stockById.get(key);
-   if(item.quantity+1e-8<qty)throw Object.assign(new Error('Insufficient inventory: '+item.name),{status:409});
-  }
-  for(const line of lines){
-   const components=componentByProduct.get(String(line.product)+':'+String(line.sizeOz??'default'));
-   const cost=components.reduce((sum,c)=>sum+Number(c.quantity)*stockById.get(String(c.inventoryItem)).averageUnitCost,0);
-   line.unitCostSnapshot=Math.round(cost*100)/100;
-   line.lineRevenue=Math.round(line.unitPriceSnapshot*line.quantity*100)/100;
-   line.lineCost=Math.round(line.unitCostSnapshot*line.quantity*100)/100;
-  }
-  for(const [key,qty] of [...demand].sort(([x],[y])=>x.localeCompare(y))){
-   const updated=await InventoryItem.updateOne({_id:key,active:true,quantity:{$gte:qty}},{$inc:{quantity:-qty}},{session});
-   if(updated.modifiedCount!==1)throw Object.assign(new Error('Inventory changed during checkout; please retry.'),{status:409});
+   const product=byProduct.get(String(entry.productId));
+   const configured=variants.some(v=>String(v.product)===String(product._id));
+   const variant=entry.sizeOz===undefined?null:byVariant.get(String(product._id)+':'+Number(entry.sizeOz));
+   if(entry.sizeOz!==undefined&&!variant)throw Object.assign(new Error('Selected drink size is not configured'),{status:409});
+   if(entry.sizeOz===undefined&&configured)throw Object.assign(new Error('Choose a cup size'),{status:409});
+   const unitPrice=variant?variant.sellingPrice:product.sellingPrice;
+   // Sales and inventory are independent. Product purchase cost is used for reporting.
+   const unitCost=Number(product.purchaseCost)||0;
+   lines.push({product:product._id,quantity:entry.quantity,...(variant?{sizeOz:variant.sizeOz}:{}),unitPriceSnapshot:unitPrice,unitCostSnapshot:unitCost,lineRevenue:Math.round(unitPrice*entry.quantity*100)/100,lineCost:Math.round(unitCost*entry.quantity*100)/100});
   }
   const totalRevenue=Math.round(lines.reduce((s,l)=>s+l.lineRevenue,0)*100)/100;
   const totalCost=Math.round(lines.reduce((s,l)=>s+l.lineCost,0)*100)/100;
   [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,totalCost,recordedBy:req.user._id}],{session,ordered:true});
-  await StockMovement.create([...demand].map(([key,qty])=>({item:key,kind:'sale',quantityDelta:-qty,unitCostSnapshot:stockById.get(key).averageUnitCost,referenceId:saved._id,createdBy:req.user._id})),{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'sale.post',entity:'DailySale',entityId:saved._id,details:{businessDate,entryKey,totalRevenue,totalCost}}],{session,ordered:true});
  });
  res.status(201).json(saved);
@@ -101,13 +69,7 @@ r.post('/:saleId/void',wrap(async(req,res)=>{
    const sale=await DailySale.findById(req.params.saleId).session(session);
    if(!sale)throw Object.assign(new Error('Sale not found'),{status:404});
    if(sale.status!=='posted')throw Object.assign(new Error('Sale already voided'),{status:409});
-   const movements=await StockMovement.find({referenceId:sale._id,kind:'sale'}).session(session);
-   if(!movements.length)throw Object.assign(new Error('Sale has no stock movement history; cannot safely restore inventory'),{status:409});
-   for(const movement of movements){
-    const updated=await InventoryItem.updateOne({_id:movement.item},{$inc:{quantity:-movement.quantityDelta}},{session});
-    if(updated.modifiedCount!==1)throw Object.assign(new Error('Inventory item missing during void'),{status:409});
-    await StockMovement.create([{item:movement.item,kind:'adjustment',quantityDelta:-movement.quantityDelta,unitCostSnapshot:movement.unitCostSnapshot,referenceId:sale._id,reason:'Void sale '+sale._id,createdBy:req.user._id}],{session,ordered:true});
-   }
+   // Voiding a sale does not change manually managed inventory.
    sale.status='void';await sale.save({session});
    await AuditLog.create([{actor:req.user._id,action:'sale.void',entity:'DailySale',entityId:sale._id,details:{reason:String(req.body?.reason||'Admin void').slice(0,300)}}],{session,ordered:true});
    result=sale;
