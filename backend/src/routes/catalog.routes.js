@@ -20,12 +20,27 @@ router.post('/categories',allowRoles('owner'),wrap(async(req,res)=>{
 router.get('/product-variants',wrap(async(_req,res)=>res.json(await ProductVariant.find({active:true}).lean())));
 router.get('/products',wrap(async(_req,res)=>res.json(await Product.find({active:true}).populate('category','name').sort({name:1}).lean())));
 router.get('/product-stock',allowRoles('owner'),wrap(async(_req,res)=>{
- const [products,sold]=await Promise.all([
+ const [products,sold,recipes,inventory]=await Promise.all([
   Product.find({active:true}).lean(),
-  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}])
+  DailySale.aggregate([{$match:{status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',sold:{$sum:'$items.quantity'}}}]),
+  Recipe.find().lean(),
+  InventoryItem.find({active:true}).select('quantity').lean()
  ]);
  const soldByProduct=new Map(sold.map(x=>[String(x._id),x.sold]));
- res.json(products.map(p=>({productId:String(p._id),available:null,sold:soldByProduct.get(String(p._id))||0,stockTracked:false,manuallyUnavailable:p.manuallyUnavailable})));
+ const recipesByProduct=new Map(recipes.map(x=>[String(x.product),x]));
+ const inventoryById=new Map(inventory.map(x=>[String(x._id),x]));
+ const availability=parts=>Math.max(0,Math.floor(Math.min(...parts.map(part=>{
+  const item=inventoryById.get(String(part.inventoryItem));
+  return item&&Number(part.quantity)>0?Number(item.quantity)/Number(part.quantity):0;
+ }))));
+ res.json(products.map(p=>{
+  const recipe=recipesByProduct.get(String(p._id));
+  const parts=[...(recipe?.ingredients||[]),...(recipe?.packaging||[])];
+  const item=p.inventoryItem?inventoryById.get(String(p.inventoryItem)):null;
+  const stockTracked=Boolean(p.inventoryItem||parts.length);
+  const available=p.inventoryItem?(item?Math.floor(Number(item.quantity)):0):parts.length?availability(parts):null;
+  return {productId:String(p._id),available,sold:soldByProduct.get(String(p._id))||0,stockTracked,manuallyUnavailable:p.manuallyUnavailable};
+ }));
 }));
 router.post('/products/:productId/stock',allowRoles('owner'),wrap(async(req,res)=>{
  const {productId}=req.params;
