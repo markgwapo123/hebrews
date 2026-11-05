@@ -1,0 +1,30 @@
+name: HEBREWS CI
+on:
+  push:
+    branches: [hebrews-dev, master]
+  pull_request:
+    branches: [hebrews-dev, master]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate backend JavaScript syntax
+        run: find backend/src -name '*.js' -print0 | xargs -0 -n1 node --check
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
