@@ -10,14 +10,15 @@ import {DailySale} from '../models/DailySale.js';
 import {StockMovement} from '../models/StockMovement.js';
 import {AuditLog} from '../models/AuditLog.js';
 const r=Router();r.use(requireAuth);
+const validBusinessDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 r.get('/',wrap(async(req,res)=>{
  const filter=req.user.role==='owner'?{}:{recordedBy:req.user._id};
- if(req.query.date){if(!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date))return bad(res);filter.businessDate=req.query.date;}
+ if(req.query.date){if(!validBusinessDate(req.query.date))return bad(res);filter.businessDate=req.query.date;}
  res.json(await DailySale.find(filter).populate('items.product','name').sort({createdAt:-1}).limit(100).lean());
 }));
 r.get('/daily-summary',wrap(async(req,res)=>{
  const date=req.query.date;
- if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date))return bad(res,'Valid date required');
+ if(!validBusinessDate(date))return bad(res,'Valid date required');
  const [totals,top]=await Promise.all([
   DailySale.aggregate([{$match:{businessDate:date,status:'posted'}},{$group:{_id:null,orders:{$sum:1},revenue:{$sum:'$totalRevenue'},cogs:{$sum:'$totalCost'}}}]),
   DailySale.aggregate([{$match:{businessDate:date,status:'posted'}},{$unwind:'$items'},{$group:{_id:'$items.product',quantity:{$sum:'$items.quantity'}}},{$sort:{quantity:-1}},{$limit:5},{$lookup:{from:'products',localField:'_id',foreignField:'_id',as:'product'}},{$project:{name:{$ifNull:[{$arrayElemAt:['$product.name',0]},'Product']},quantity:1}}])
@@ -27,7 +28,7 @@ r.get('/daily-summary',wrap(async(req,res)=>{
 }));
 r.post('/',wrap(async(req,res)=>{
  const {businessDate,entryKey,items}=req.body||{};
- if(typeof businessDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)||Number.isNaN(Date.parse(businessDate+'T00:00:00Z'))||typeof entryKey!=='string'||entryKey.length<8||entryKey.length>100||!Array.isArray(items)||items.length<1||items.length>100)return bad(res);
+ if(!validBusinessDate(businessDate)||typeof entryKey!=='string'||entryKey.length<8||entryKey.length>100||!Array.isArray(items)||items.length<1||items.length>100)return bad(res);
  const seen=new Set();
  for(const line of items){const key=String(line.productId)+':'+String(line.sizeOz??'default');if(!id(line.productId)||!Number.isSafeInteger(line.quantity)||line.quantity<=0||(line.sizeOz!==undefined&&![6,12,16,22].includes(Number(line.sizeOz)))||seen.has(key))return bad(res,'Invalid or duplicate product/size line');seen.add(key);}
  const existing=await DailySale.findOne({entryKey}).lean();
