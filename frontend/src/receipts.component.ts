@@ -1,8 +1,9 @@
 import {Component, Input, Output, EventEmitter} from '@angular/core';
 import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
 
 @Component({
- selector:'app-receipts',standalone:true,imports:[CommonModule],
+ selector:'app-receipts',standalone:true,imports:[CommonModule,FormsModule],
  template:`
  <section class="receipts">
   <div class="heading"><div><h1>Sales Receipts</h1><p>All recorded sales, including voided transactions.</p></div><button type="button" (click)="refresh.emit()">Refresh receipts</button></div>
@@ -40,7 +41,7 @@ export class ReceiptsComponent{
  @Input() voiding=false;
  @Input() voidError='';
  selected:any=null;
- requestVoid(){if(!this.selected||this.selected.status==='void'||this.voiding)return;if(window.confirm('Void this sale? Stock will be restored and the sale excluded from totals.'))this.voidSale.emit(this.selected._id);}
+ requestVoid(){if(!this.selected||this.selected.status==='void'||this.voiding)return;if(window.confirm('Void this sale? The sale will be excluded from totals. Inventory stock will not change.'))this.voidSale.emit(this.selected._id);}
  print(){window.print();}
  open(receipt:any){this.selected=receipt;}
 }
