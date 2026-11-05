@@ -4,6 +4,7 @@ import {requireAuth} from '../middleware/auth.js';
 import {wrap,id,positive,bad} from '../utils/validate.js';
 import {Product} from '../models/Product.js';
 import {Recipe} from '../models/Recipe.js';
+import {ProductVariant} from '../models/ProductVariant.js';
 import {InventoryItem} from '../models/InventoryItem.js';
 import {DailySale} from '../models/DailySale.js';
 import {StockMovement} from '../models/StockMovement.js';
@@ -28,7 +29,7 @@ r.post('/',wrap(async(req,res)=>{
  const {businessDate,entryKey,items}=req.body||{};
  if(typeof businessDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)||Number.isNaN(Date.parse(businessDate+'T00:00:00Z'))||typeof entryKey!=='string'||entryKey.length<8||entryKey.length>100||!Array.isArray(items)||items.length<1||items.length>100)return bad(res);
  const seen=new Set();
- for(const line of items){if(!id(line.productId)||!Number.isSafeInteger(line.quantity)||line.quantity<=0||seen.has(line.productId))return bad(res,'Invalid or duplicate product line');seen.add(line.productId);}
+ for(const line of items){const key=String(line.productId)+':'+String(line.sizeOz??'default');if(!id(line.productId)||!Number.isSafeInteger(line.quantity)||line.quantity<=0||(line.sizeOz!==undefined&&![6,12,16,22].includes(Number(line.sizeOz)))||seen.has(key))return bad(res,'Invalid or duplicate product/size line');seen.add(key);}
  const existing=await DailySale.findOne({entryKey}).lean();
  if(existing)return res.status(409).json({error:'Entry key already posted',saleId:existing._id});
  const session=await mongoose.startSession();let saved;
@@ -36,28 +37,34 @@ r.post('/',wrap(async(req,res)=>{
  await session.withTransaction(async()=>{
   const productIds=items.map(x=>x.productId);
   const products=await Product.find({_id:{$in:productIds},active:true,manuallyUnavailable:false}).session(session);
-  if(products.length!==items.length)throw Object.assign(new Error('Product missing or unavailable'),{status:409});
+  if(products.length!==new Set(items.map(x=>x.productId)).size)throw Object.assign(new Error('Product missing or unavailable'),{status:409});
   const byProduct=new Map(products.map(p=>[String(p._id),p]));
   const recipes=await Recipe.find({product:{$in:productIds}}).session(session);
   const byRecipe=new Map(recipes.map(recipe=>[String(recipe.product),recipe]));
+  const variants=await ProductVariant.find({product:{$in:productIds},active:true}).session(session);
+  const byVariant=new Map(variants.map(v=>[String(v.product)+':'+v.sizeOz,v]));
   const demand=new Map(),lines=[],componentByProduct=new Map();
   for(const entry of items){
    const product=byProduct.get(entry.productId),qty=entry.quantity;
+   const variant=entry.sizeOz===undefined?null:byVariant.get(entry.productId+':'+Number(entry.sizeOz));
+   if(entry.sizeOz!==undefined&&!variant)throw Object.assign(new Error('Drink size is not configured or unavailable'),{status:409});
+   if(entry.sizeOz===undefined&&variants.some(v=>String(v.product)===entry.productId))throw Object.assign(new Error('Choose a cup size before checkout'),{status:409});
    let components;
-   if(product.inventoryItem){
+   if(variant){components=[...variant.ingredients,...variant.packaging];}
+   else if(product.inventoryItem){
     components=[{inventoryItem:product.inventoryItem,quantity:1}];
    }else{
     const recipe=byRecipe.get(entry.productId);
     if(!recipe||!(recipe.ingredients?.length||recipe.packaging?.length))throw Object.assign(new Error('Connect inventory or a recipe for '+product.name+' before checkout.'),{status:409});
     components=[...recipe.ingredients,...(recipe.packaging||[])];
    }
-   componentByProduct.set(entry.productId,components);
+   componentByProduct.set(entry.productId+':'+String(entry.sizeOz??'default'),components);
    for(const component of components){
     const key=String(component.inventoryItem),amount=Number(component.quantity)*qty;
     if(!Number.isFinite(amount)||amount<=0)throw Object.assign(new Error('Invalid recipe quantity for '+product.name),{status:409});
     demand.set(key,(demand.get(key)||0)+amount);
    }
-   lines.push({product:product._id,quantity:qty,unitPriceSnapshot:product.sellingPrice});
+   lines.push({product:product._id,quantity:qty,...(variant?{sizeOz:variant.sizeOz}:{}),unitPriceSnapshot:variant?variant.sellingPrice:product.sellingPrice});
   }
   const stock=await InventoryItem.find({_id:{$in:[...demand.keys()]},active:true}).session(session);
   if(stock.length!==demand.size)throw Object.assign(new Error('Required inventory item is missing or inactive.'),{status:409});
@@ -67,7 +74,7 @@ r.post('/',wrap(async(req,res)=>{
    if(item.quantity+1e-8<qty)throw Object.assign(new Error('Insufficient inventory: '+item.name),{status:409});
   }
   for(const line of lines){
-   const components=componentByProduct.get(String(line.product));
+   const components=componentByProduct.get(String(line.product)+':'+String(line.sizeOz??'default'));
    const cost=components.reduce((sum,c)=>sum+Number(c.quantity)*stockById.get(String(c.inventoryItem)).averageUnitCost,0);
    line.unitCostSnapshot=Math.round(cost*100)/100;
    line.lineRevenue=Math.round(line.unitPriceSnapshot*line.quantity*100)/100;
