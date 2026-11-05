@@ -17,6 +17,7 @@ r.post('/receive',wrap(async(req,res)=>{
  try{await session.withTransaction(async()=>{
   const item=await InventoryItem.findOne({_id:itemId,active:true}).session(session);
   if(!item)throw Object.assign(new Error('Inventory item not found'),{status:404});
+  if(item.unit==='pcs'&&!Number.isSafeInteger(quantity))throw Object.assign(new Error('Piece-based stock-in must use a whole number'),{status:400});
   const before=item.quantity,after=before+quantity;
   item.averageUnitCost=Math.round(((before*item.averageUnitCost)+(quantity*unitCost))/after*10000)/10000;
   item.quantity=after;await item.save({session});
@@ -33,6 +34,7 @@ r.post('/adjust',wrap(async(req,res)=>{
  try{await session.withTransaction(async()=>{
   const item=await InventoryItem.findOne({_id:itemId,active:true}).session(session);
   if(!item)throw Object.assign(new Error('Inventory item not found'),{status:404});
+  if(item.unit==='pcs'&&!Number.isSafeInteger(quantityDelta))throw Object.assign(new Error('Piece-based adjustment must use a whole number'),{status:400});
   if(item.quantity+quantityDelta<0)throw Object.assign(new Error('Insufficient stock'),{status:409});
   item.quantity+=quantityDelta;await item.save({session});
   const [movement]=await StockMovement.create([{item:item._id,kind:quantityDelta<0?'waste':'adjustment',quantityDelta,reason:reason.trim(),unitCostSnapshot:item.averageUnitCost,createdBy:req.user._id}],{session,ordered:true});
