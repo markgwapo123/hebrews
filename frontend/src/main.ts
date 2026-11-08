@@ -460,7 +460,7 @@ class AppComponent {
  email='';password='';showPassword=false;
  ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'|'help'='dashboard';
  get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management',help:'Help & System Guide'} as Record<string,string>)[this.ownerPage];}
- readonly helpTutorials=[{title:"Dashboard",page:"dashboard",steps:["Open Dashboard from the sidebar","Review Capital, Total Sold, Remaining Stock and Profit/Gain","Use the date filter to review the sales graph"]},
+ readonly helpTutorials:{title:string;page:AppComponent['ownerPage'];steps:string[]}[]=[{title:"Dashboard",page:"dashboard",steps:["Open Dashboard from the sidebar","Review Capital, Total Sold, Remaining Stock and Profit/Gain","Use the date filter to review the sales graph"]},
 {title:"Products",page:"products",steps:["Open Products and choose Add Product","Enter the name, category, selling price and buying cost","Save the product and confirm it appears in the list"]},
 {title:"Inventory",page:"inventory",steps:["Open Inventory and add your ingredients or stock items","Record quantities, units and costs through Stock In","Review remaining stock, warnings and movement history"]},
 {title:"Recipes",page:"products",steps:["Open a product's recipe or inventory linking controls","Select ingredients and packaging needed per serving or size","Save the recipe and verify product availability; checkout does not deduct stock"]},
