@@ -1,0 +1,12 @@
+{
+  "name": "hebrews-tutorial-recorder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node record.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2",
+    "dotenv": "^16.4.7"
+  }
+}
