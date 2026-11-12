@@ -38,7 +38,7 @@ try {
   console.error('MongoDB connection failed:', {
     name: error.name,
     code: error.code,
-    message: String(error.message || '').replace(/mongodb(?:\\+srv)?:\\/\\/[^\\s@]+@/g, 'mongodb://[REDACTED]@')
+    message: String(error.message || '').replace(/mongodb(?:\+srv)?:\/\/[^\s@]+@/g, 'mongodb://[REDACTED]@')
   });
   process.exit(1);
 }
