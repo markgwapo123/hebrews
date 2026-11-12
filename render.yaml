@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: hebrews
+    runtime: node
+    plan: free
+    buildCommand: npm --prefix frontend ci && npm --prefix frontend run build && npm --prefix backend ci
+    startCommand: npm --prefix backend start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true

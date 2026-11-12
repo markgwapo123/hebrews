@@ -532,7 +532,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 })
 class AppComponent {
  private http=inject(HttpClient);
- private api='http://localhost:5000/api';
+ private api=location.hostname==='localhost'||location.hostname==='127.0.0.1'?'http://localhost:5000/api':'/api';
  email='';password='';showPassword=false;
  ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'|'help'='dashboard';
  get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management',help:'Help & System Guide'} as Record<string,string>)[this.ownerPage];}

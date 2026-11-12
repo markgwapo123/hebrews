@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
+import {existsSync} from 'node:fs';
+import {dirname,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import authRoutes from './routes/auth.routes.js';
 import catalogRoutes from './routes/catalog.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
@@ -25,6 +28,14 @@ app.use('/api/stock',stockRoutes);
 app.use('/api/sales',salesRoutes);
 app.use('/api/finance',financeRoutes);
 app.use('/api/reports',reportsRoutes);
+const frontendDirectory=resolve(dirname(fileURLToPath(import.meta.url)),'../../frontend/dist/hebrews/browser');
+if(existsSync(resolve(frontendDirectory,'index.html'))){
+ app.use(express.static(frontendDirectory));
+ app.get('*',(req,res,next)=>{
+  if(req.path.startsWith('/api'))return next();
+  res.sendFile(resolve(frontendDirectory,'index.html'),error=>{if(error)next(error);});
+ });
+}
 app.use((_req,res)=>res.status(404).json({error:'Route not found'}));
 app.use((err,_req,res,_next)=>{
  console.error('API error:',err.message);
