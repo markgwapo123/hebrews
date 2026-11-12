@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import dns from 'node:dns';
 import { isIP } from 'node:net';
 import { app } from './app.js';
+import { startKeepAlive } from './keepAlive.js';
 
 // Use working public DNS resolvers for Atlas SRV lookups.
 // An optional MONGODB_DNS_SERVERS override must contain only valid IP addresses.
@@ -28,12 +29,16 @@ try {
     maxPoolSize: 10
   });
   console.log('MongoDB connected to database:', mongoose.connection.name);
-  app.listen(port, () => console.log('Hebrews API listening on port', port));
+
+  app.listen(port, () => {
+    console.log('Hebrews API listening on port', port);
+    startKeepAlive();
+  });
 } catch (error) {
   console.error('MongoDB connection failed:', {
     name: error.name,
     code: error.code,
-    message: String(error.message || '').replace(/mongodb(?:\+srv)?:\/\/[^\s@]+@/g, 'mongodb://[REDACTED]@')
+    message: String(error.message || '').replace(/mongodb(?:\\+srv)?:\\/\\/[^\\s@]+@/g, 'mongodb://[REDACTED]@')
   });
   process.exit(1);
 }
