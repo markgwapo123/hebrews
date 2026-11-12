@@ -35,7 +35,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
      <button type="button" [class.selected]="ownerPage==='receipts'" (click)="navigateOwner('receipts')"><span class="nav-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><span>Sales Receipts</span></button>
      <button type="button" [class.selected]="ownerPage==='reports'" (click)="navigateOwner('reports')"><span class="nav-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11h4v9M10 20V4h4v16M16 20v-7h4v7M3 20h18"/></svg></span><span>Reports</span></button>
      <button type="button" [class.selected]="ownerPage==='data-management'" (click)="navigateOwner('data-management')"><span class="nav-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m19.4 15 .1.1 1.7 1.3-1.7 3-2-.8a8 8 0 0 1-2.1 1.2L15 22h-3.5l-.4-2.2a8 8 0 0 1-2.1-1.2l-2 .8-1.7-3L7 15.1a8 8 0 0 1 0-2.2l-1.7-1.3 1.7-3 2 .8a8 8 0 0 1 2.1-1.2L11.5 6H15l.4 2.2a8 8 0 0 1 2.1 1.2l2-.8 1.7 3-1.7 1.3a8 8 0 0 1-.1 2.1Z"/></svg></span><span>Data Management</span></button>
-     <button type="button" [class.selected]="ownerPage==='help'" (click)="navigateOwner('help')"><span class="nav-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg></span><span>Help</span></button>
+     <button type="button" [class.selected]="ownerPage==='help' || helpOpen" (click)="navigateOwner('help')"><span class="nav-icon"><svg class="sidebar-svg" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4M12 17h.01"/></svg></span><span>Help</span></button>
     </nav>
     <div class="sidebar-footer"><span class="status-dot"></span> OWNER ACCOUNT <button type="button" class="signout-link" (click)="logout()">Sign out</button></div>
    </aside>
@@ -82,8 +82,11 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
   </section>
   <div *ngIf="resetOpen" class="modal-backdrop" (click)="closeReset()"><section class="product-modal" role="dialog" aria-modal="true" aria-label="Reset business data" (click)="$event.stopPropagation()"><h2>Reset All Business Data?</h2><p>This permanently deletes products, inventory, recipes, sales, receipts, capital, expenses and audit history. Your login accounts remain.</p><p class="error">This cannot be undone. Back up important data first.</p><label>Type RESET HEBREWS DATA to confirm<input name="resetConfirmation" [(ngModel)]="resetConfirmation" autocomplete="off"></label><p *ngIf="resetError" class="error" role="alert">{{resetError}}</p><div class="modal-actions"><button type="button" class="secondary-button" [disabled]="resetLoading()" (click)="closeReset()">Cancel</button><button type="button" [disabled]="resetLoading() || resetConfirmation!=='RESET HEBREWS DATA'" (click)="resetBusinessData()">{{resetLoading()?'Resetting...':'Permanently Reset'}}</button></div></section></div>
   <section *ngIf="user()?.role==='owner' && ownerPage==='data-management'" class="panel"><p class="eyebrow">OWNER SETTINGS</p><h1>Data Management</h1><p>Manage test data and system records. This section is available only to the owner.</p><div class="panel"><h2>Reset Business Data</h2><p>Delete all products, categories, inventory, recipes, sales, receipts, capital, expenses, stock movements and audit history. Owner and staff login accounts remain unchanged.</p><p class="error">Permanent action. Back up important business data before resetting.</p><button type="button" (click)="openReset()">Reset Business Data</button></div></section>
-  <section *ngIf="user()?.role==='owner' && ownerPage==='help'" class="panel help-page">
-   <div class="help-header"><div><p class="eyebrow">HEBREWS SUPPORT CENTER</p><h1>How can we help you?</h1><p class="help-header-subtitle">Explore guided demonstrations and simple instructions for managing your café or restaurant.</p></div><div class="help-header-art" aria-hidden="true">▶<span>GUIDES</span></div></div>
+  <div *ngIf="user()?.role==='owner' && helpOpen" class="help-modal-backdrop" (click)="closeHelp()">
+   <section class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-dialog-title" (click)="$event.stopPropagation()">
+    <div class="help-modal-toolbar"><span>Owner help &amp; tutorials</span><button type="button" aria-label="Close Help" (click)="closeHelp()">×</button></div>
+    <section class="panel help-page">
+   <div class="help-header"><div><p class="eyebrow">HEBREWS SUPPORT CENTER</p><h1 id="help-dialog-title">How can we help you?</h1><p class="help-header-subtitle">Explore guided demonstrations and simple instructions for managing your café or restaurant.</p></div><div class="help-header-art" aria-hidden="true">▶<span>GUIDES</span></div></div>
    
    <div class="help-start"><div class="help-start-badge">START HERE</div><div><strong>New to HEBREWS?</strong><p>Follow this order: Products → Inventory → Recipes → Capital → Kiosk → Receipts → Reports.</p></div><button type="button" (click)="openHelpTutorial(1)">▶ Start Tutorial</button></div>
    <div class="help-section-heading"><div><h2>Explore tutorials</h2><p>Choose a topic, watch the animated walkthrough, or expand for detailed instructions.</p></div><span>9 GUIDES</span></div><label class="help-search"><span aria-hidden="true">⌕</span><input type="search" aria-label="Search Help topics" placeholder="Search tutorials (e.g. inventory, checkout, reports)" [(ngModel)]="helpSearch"></label>
@@ -99,7 +102,9 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <details [hidden]="!helpMatches(8)"><summary><span class="help-step">09</span><span><strong>Data Management &amp; safety</strong><small>Understand the permanent reset option</small></span></summary><div class="help-body"><div class="help-topic-actions"><button type="button" class="help-watch-button" (click)="openHelpTutorial(8)">▶ Watch walkthrough</button><span>Step-by-step instructions below</span></div><ol><li>Open <strong>Data Management</strong> only when you need to manage or reset business records.</li><li>Back up important information before any reset.</li><li>Read the confirmation carefully: resetting business data permanently removes products, inventory, recipes, sales, receipts, capital, expenses and audit history.</li><li>Never reset live business data just to practice using the system.</li></ol><p><strong>Warning:</strong> Reset Business Data is destructive and cannot be undone.</p><button type="button" class="secondary-button" (click)="navigateOwner('data-management')">Open Data Management</button></div></details>
    </div>
    <div class="help-footer-note"><strong>Quick tip</strong><p>Set up products, inventory and recipes first. Then record sales and review receipts and reports. Walkthroughs are simulations and never change your business data.</p></div>
-  </section>
+    </section>
+   </section>
+  </div>
     <div *ngIf="activeHelpTutorial as tutorial" class="help-player-backdrop" (click)="closeHelpTutorial()">
    <section class="help-player" role="dialog" aria-modal="true" [attr.aria-label]="tutorial.title+' animated tutorial'" (click)="$event.stopPropagation()">
     <div class="help-player-head"><div><small>HEBREWS • ANIMATED WALKTHROUGH</small><h2>{{tutorial.title}}</h2></div><button type="button" class="help-player-close" aria-label="Close tutorial" (click)="closeHelpTutorial()">×</button></div>
@@ -512,6 +517,17 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 
 /* Daily Cash Flow: compact aligned date-range controls */
 .reports-cashflow .reports-date-filter{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px 18px;background:#faf8f6;border:1px solid #eee5dc;border-radius:14px;margin:18px 0 20px;width:100%;box-sizing:border-box}.reports-cashflow .reports-date-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;flex:1 1 380px;max-width:520px;min-width:0}.reports-cashflow .reports-date-field{display:flex;flex-direction:column;gap:7px;min-width:0;color:#574536;font-size:12px;font-weight:700}.reports-cashflow .reports-date-field input{width:100%;min-width:0;max-width:100%;height:46px;border:1px solid #dcd0c4;border-radius:10px;background:white;padding:0 12px;color:#382d25;font-size:14px;box-sizing:border-box;outline-offset:2px}.reports-cashflow .reports-date-field input:focus{border-color:#846044;box-shadow:0 0 0 3px #8460441a;outline:none}.reports-cashflow .reports-view-button{height:46px;min-height:46px;align-self:flex-end;padding:0 22px;border-radius:10px;white-space:nowrap;font-size:13px;font-weight:700;margin:0}.reports-cashflow .reports-view-button:disabled{opacity:.55;cursor:not-allowed}@media(max-width:620px){.reports-cashflow .reports-date-filter{padding:14px;gap:14px}.reports-cashflow .reports-date-fields{flex-basis:100%;max-width:none}.reports-cashflow .reports-view-button{width:100%}}@media(max-width:360px){.reports-cashflow .reports-date-fields{grid-template-columns:1fr}}
+.help-modal-backdrop{position:fixed;inset:0;z-index:9000;display:grid;place-items:center;padding:clamp(8px,2.5vw,26px);box-sizing:border-box;background:rgba(18,30,45,.62);backdrop-filter:blur(3px)}
+.help-dialog{display:flex;flex-direction:column;width:min(1140px,100%);max-height:min(92dvh,1000px);overflow-y:auto;background:#f8fafc;border:1px solid #d6e1ee;border-radius:20px;box-shadow:0 24px 80px #10253f55}
+.help-modal-toolbar{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px clamp(16px,3vw,28px);background:#fff;border-bottom:1px solid #e6edf5;color:#26496c;font-size:13px;font-weight:700}
+.help-modal-toolbar button{width:36px;height:36px;border:0;border-radius:9px;background:#f1f5f9;color:#334155;font-size:25px;line-height:1;cursor:pointer}
+.help-modal-toolbar button:hover{background:#e2e8f0}
+.help-dialog .help-page{width:100%;max-width:none!important;margin:0!important;border:0;box-shadow:none!important;border-radius:0 0 20px 20px}
+@media(max-width:600px){.help-modal-backdrop{padding:8px}.help-dialog{max-height:96dvh;border-radius:14px}.help-dialog .help-page{padding:14px!important}.help-dialog .help-header{padding:18px;border-radius:14px}.help-dialog .help-section-heading{align-items:flex-start;margin-top:22px}}
+.sidebar-menu{min-height:0!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d4c8bc transparent}
+.sidebar-menu>button{flex-shrink:0!important;min-height:42px!important}
+.reports-cashflow .reports-date-field{margin:0!important}
+.reports-cashflow .reports-date-field input{margin:0!important}
 `]
 })
 class AppComponent {
@@ -520,6 +536,7 @@ class AppComponent {
  email='';password='';showPassword=false;
  ownerPage:'dashboard'|'kiosk'|'products'|'inventory'|'sales'|'financials'|'receipts'|'reports'|'data-management'|'help'='dashboard';
  get pageTitle(){return ({dashboard:'Dashboard',kiosk:'Kiosk Ordering',products:'Products',inventory:'Inventory',sales:'Daily Sales',financials:'Financials',receipts:'Sales Receipts',reports:'Reports','data-management':'Data Management',help:'Help & System Guide'} as Record<string,string>)[this.ownerPage];}
+ helpOpen=false;
  helpSearch='';
  helpMatches(index:number){const query=this.helpSearch.trim().toLowerCase();if(!query)return true;const t=this.helpTutorials[index];return !!t&&(t.title+' '+t.steps.join(' ')).toLowerCase().includes(query);}
  readonly helpTutorials:{title:string;page:AppComponent['ownerPage'];steps:string[]}[]=[{title:"Dashboard",page:"dashboard",steps:["Open Dashboard from the sidebar","Review Capital, Total Sold, Remaining Stock and Profit/Gain","Use the date filter to review the sales graph"]},
@@ -537,11 +554,12 @@ class AppComponent {
  get activeHelpTutorial(){return this.helpTutorialIndex===null?null:this.helpTutorials[this.helpTutorialIndex]||null;}
  openHelpTutorial(index:number){this.helpTutorialIndex=index;this.helpTutorialStep=0;this.helpVideoUnavailable=true;}
  closeHelpTutorial(){this.helpTutorialIndex=null;this.helpTutorialStep=0;this.helpVideoUnavailable=false;}
+ closeHelp(){this.helpOpen=false;this.closeHelpTutorial();}
  nextHelpTutorialStep(){const t=this.activeHelpTutorial;if(t)this.helpTutorialStep=Math.min(t.steps.length-1,this.helpTutorialStep+1);}
  previousHelpTutorialStep(){this.helpTutorialStep=Math.max(0,this.helpTutorialStep-1);}
  sidebarOpen=true;
  mobileSidebarOpen=false;
- navigateOwner(page:AppComponent['ownerPage']){this.ownerPage=page;this.mobileSidebarOpen=false;if(page==='products'||page==='kiosk'){this.loadProductStocks();this.loadProductVariants();this.loadInventory();}if(page==='receipts')this.loadReceipts();if(page==='sales')this.loadDailySales();if(page==='reports'){this.loadReport();this.loadCashFlow();}if(page==='inventory'){this.loadInventory();this.loadInventoryMovements();}if(page==='financials')this.loadCapitalHistory();}
+ navigateOwner(page:AppComponent['ownerPage']){this.mobileSidebarOpen=false;if(page==='help'){this.helpOpen=true;return;}this.helpOpen=false;this.ownerPage=page;if(page==='products'||page==='kiosk'){this.loadProductStocks();this.loadProductVariants();this.loadInventory();}if(page==='receipts')this.loadReceipts();if(page==='sales')this.loadDailySales();if(page==='reports'){this.loadReport();this.loadCashFlow();}if(page==='inventory'){this.loadInventory();this.loadInventoryMovements();}if(page==='financials')this.loadCapitalHistory();}
  get remainingProductUnits(){return this.productStocks().reduce((total,stock)=>total+(stock.stockTracked?Math.max(0,Number(stock.available)||0):0),0);}
  productStocks=signal<{productId:string;available:number|null;sold:number;stockTracked:boolean;manuallyUnavailable:boolean}[]>([]);
  stockNotice='';
@@ -679,6 +697,6 @@ class AppComponent {
  private headers(){return {Authorization:'Bearer '+this.token()};}
  loadSummary(){this.http.get<any>(this.api+'/owner/summary',{headers:this.headers()}).subscribe({next:r=>this.summary.set(r),error:()=>this.error.set('Could not load owner summary.')});}
  loadProducts(){this.loadProductVariants();this.http.get<any[]>(this.api+'/catalog/products',{headers:this.headers()}).subscribe({next:r=>this.products.set(r),error:()=>this.error.set('Could not load products.')});}
- logout(){this.receipts.set([]);this.checkoutConfirm=false;this.checkoutReceipt=null;this.pendingCheckoutKey=null;this.cart=[];this.showAddProduct=false;this.selectedProduct=null;this.ownerPage='dashboard';this.sidebarOpen=false;this.user.set(null);this.token.set('');this.summary.set(null);this.products.set([]);this.productStocks.set([]);this.stockNotice='';this.salesTrend.set([]);this.salesTrendError.set('');this.error.set('');}
+ logout(){this.receipts.set([]);this.checkoutConfirm=false;this.checkoutReceipt=null;this.pendingCheckoutKey=null;this.cart=[];this.showAddProduct=false;this.selectedProduct=null;this.helpOpen=false;this.closeHelpTutorial();this.ownerPage='dashboard';this.sidebarOpen=false;this.user.set(null);this.token.set('');this.summary.set(null);this.products.set([]);this.productStocks.set([]);this.stockNotice='';this.salesTrend.set([]);this.salesTrendError.set('');this.error.set('');}
 }
 bootstrapApplication(AppComponent,{providers:[provideHttpClient()]}).catch(console.error);
