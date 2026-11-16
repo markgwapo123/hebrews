@@ -528,6 +528,62 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sidebar-menu>button{flex-shrink:0!important;min-height:42px!important}
 .reports-cashflow .reports-date-field{margin:0!important}
 .reports-cashflow .reports-date-field input{margin:0!important}
+
+/* Desktop web view: keep Current Order and Grand Total readable without
+   changing the mobile layout, which is already working correctly. */
+@media(min-width:761px){
+ .kiosk-pos-layout .kiosk-fixed-cart{
+  width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  padding:18px 22px!important;overflow:hidden!important;
+ }
+ .kiosk-pos-layout .kiosk-order-heading{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:14px!important;width:100%!important;min-width:0!important;margin-bottom:10px!important;
+ }
+ .kiosk-pos-layout .kiosk-order-heading h2{
+  display:block!important;min-width:0!important;margin:0!important;font-size:20px!important;
+  line-height:1.25!important;white-space:normal!important;
+ }
+ .kiosk-pos-layout .kiosk-order-count{flex:0 0 auto!important;white-space:nowrap!important}
+ .kiosk-pos-layout .kiosk-cart-items{
+  width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+ }
+ .kiosk-pos-layout .kiosk-cart-items .cart-line{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(100px,150px)!important;
+  align-items:center!important;column-gap:18px!important;width:100%!important;
+  min-width:0!important;box-sizing:border-box!important;
+ }
+ .kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child{
+  min-width:0!important;overflow-wrap:anywhere!important;
+ }
+ .kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child strong{
+  display:block!important;white-space:normal!important;overflow-wrap:anywhere!important;
+ }
+ .kiosk-pos-layout .kiosk-cart-items .cart-line>.cart-qty{
+  width:auto!important;justify-content:center!important;white-space:nowrap!important;
+ }
+ .kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{
+  min-width:0!important;text-align:right!important;white-space:nowrap!important;
+ }
+ .kiosk-pos-layout .cart-total{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:16px!important;width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  margin:12px 0!important;padding:12px 0!important;border-top:1px solid #e8dfd4!important;
+  font-size:16px!important;
+ }
+ .kiosk-pos-layout .cart-total strong{white-space:nowrap!important}
+ .kiosk-pos-layout .cart-total strong:last-child{
+  font-size:22px!important;font-weight:800!important;text-align:right!important;
+ }
+ .kiosk-pos-layout .checkout-actions{
+  display:flex!important;flex-wrap:nowrap!important;width:100%!important;gap:12px!important;
+ }
+ .kiosk-pos-layout .checkout-actions button{
+  flex:1 1 0!important;min-width:0!important;white-space:nowrap!important;
+ }
+}
+
 `]
 })
 class AppComponent {
