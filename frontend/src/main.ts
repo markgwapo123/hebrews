@@ -171,11 +171,22 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
   </div>
 <div *ngIf="selectedDrink" class="modal-backdrop" (click)="selectedDrink=null"><section class="product-modal" role="dialog" aria-modal="true" aria-label="Choose drink size" (click)="$event.stopPropagation()"><div class="modal-title-row"><h2>{{selectedDrink.name}} — Choose Size</h2><button type="button" class="modal-close" (click)="selectedDrink=null">×</button></div><label>Cup Size<select [(ngModel)]="selectedDrinkSize" name="drinkSize"><option *ngFor="let v of variantsFor(selectedDrink)" [ngValue]="v.sizeOz">{{v.sizeOz}} oz — ₱{{v.sellingPrice | number:'1.2-2'}} {{variantAvailable(v)===0?'(Sold Out)':''}}</option></select></label><p *ngIf="selectedDrinkVariant">₱{{selectedDrinkVariant.sellingPrice | number:'1.2-2'}}</p><div class="modal-actions"><button type="button" class="secondary-button" (click)="selectedDrink=null">Cancel</button><button type="button" [disabled]="!selectedDrinkVariant || variantAvailable(selectedDrinkVariant)===0" (click)="addSizedDrink()">Add to Order</button></div></section></div>
   <section *ngIf="user()?.role==='owner' && ownerPage==='kiosk'" class="kiosk">
-    
-    <p *ngIf="stockNotice" class="stock-notice" role="alert">{{stockNotice}}</p><div class="kiosk-layout kiosk-pos-layout"><div class="kiosk-grid kiosk-product-scroll">
-      <article class="kiosk-card" *ngFor="let product of products()"><div class="kiosk-photo kiosk-photo-wrap">{{product.kind==='prepared'?'🍽️':'🥡'}}</div><div class="kiosk-info"><strong>{{product.name}}</strong><p>₱{{product.sellingPrice | number:'1.2-2'}}</p><p class="stock-indicator">{{productStock(product).sold}} sold</p><button type="button" [disabled]="product.manuallyUnavailable || (productStock(product).stockTracked && productStock(product).available===0)" (click)="addToCart(product)">{{product.manuallyUnavailable?'Not Available':productStock(product).stockTracked && productStock(product).available===0?'Sold Out':variantsFor(product).length?'Choose Size':'+ Add to Order'}}</button></div></article>
-      <p *ngIf="products().length===0" class="muted">No products yet. Add products to the catalog first.</p>
-    </div><aside class="kiosk-cart kiosk-fixed-cart"><div class="kiosk-order-heading"><h2>Current Order</h2><span class="kiosk-order-count">{{cart.length}} {{cart.length===1 ? 'item' : 'items'}}</span></div><div class="kiosk-cart-items"><div class="cart-line" *ngFor="let item of cart"><div><strong>{{item.name}}</strong><small>₱{{item.price | number:'1.2-2'}} each</small></div><div class="cart-qty"><button type="button" (click)="changeCartQty(item.key||item.id,-1)">−</button><span>{{item.qty}}</span><button type="button" (click)="changeCartQty(item.key||item.id,1)">+</button></div><strong>₱{{item.qty*item.price | number:'1.2-2'}}</strong></div><p *ngIf="cart.length===0" class="kiosk-empty-cart">No items added yet. Select a product above.</p></div><div class="cart-total"><strong>Grand Total</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div><div class="checkout-actions"><button type="button" class="secondary-button" [disabled]="cart.length===0 || checkoutLoading()" (click)="clearCart()">Clear Order</button><button type="button" [disabled]="cart.length===0 || checkoutLoading()" (click)="openCheckout()">Checkout</button></div></aside></div>
+    <nav class="kiosk-category-nav" aria-label="Filter products by category" tabindex="0">
+     <button type="button" *ngFor="let category of kioskCategories" [attr.aria-pressed]="kioskCategory===category.value" [class.selected]="kioskCategory===category.value" (click)="kioskCategory=category.value">{{category.name}}</button>
+    </nav>
+    <p *ngIf="stockNotice" class="stock-notice" role="alert">{{stockNotice}}</p>
+    <div class="kiosk-layout kiosk-pos-layout">
+     <div class="kiosk-grid kiosk-product-scroll" aria-label="Products">
+      <article class="kiosk-card" *ngFor="let product of kioskProducts"><div class="kiosk-photo kiosk-photo-wrap">{{product.kind==='prepared'?'🍽️':'🥡'}}</div><div class="kiosk-info"><strong>{{product.name}}</strong><p>₱{{product.sellingPrice | number:'1.2-2'}}</p><p class="stock-indicator">{{productStock(product).sold}} sold</p><button type="button" [disabled]="product.manuallyUnavailable || (productStock(product).stockTracked && productStock(product).available===0)" (click)="addToCart(product)">{{product.manuallyUnavailable?'Not Available':productStock(product).stockTracked && productStock(product).available===0?'Sold Out':variantsFor(product).length?'Choose Size':'+ Add to Order'}}</button></div></article>
+      <p *ngIf="kioskProducts.length===0" class="muted kiosk-empty-products">{{products().length===0?'No products yet. Add products to the catalog first.':'No products in this category.'}}</p>
+     </div>
+     <aside class="kiosk-cart kiosk-fixed-cart">
+      <div class="kiosk-order-heading"><h2>Current Order</h2><span class="kiosk-order-count">{{cart.length}} {{cart.length===1 ? 'item' : 'items'}}</span></div>
+      <div class="kiosk-cart-items"><div class="cart-line" *ngFor="let item of cart"><div><strong>{{item.name}}</strong><small>₱{{item.price | number:'1.2-2'}} each</small></div><div class="cart-qty"><button type="button" (click)="changeCartQty(item.key||item.id,-1)">−</button><span>{{item.qty}}</span><button type="button" (click)="changeCartQty(item.key||item.id,1)">+</button></div><strong>₱{{item.qty*item.price | number:'1.2-2'}}</strong></div><p *ngIf="cart.length===0" class="kiosk-empty-cart">No items added yet. Select a product above.</p></div>
+      <div class="cart-total"><strong>Grand Total</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div>
+      <div class="checkout-actions"><button type="button" class="secondary-button" [disabled]="cart.length===0 || checkoutLoading()" (click)="clearCart()">Clear Order</button><button type="button" [disabled]="cart.length===0 || checkoutLoading()" (click)="openCheckout()">Checkout</button></div>
+     </aside>
+    </div>
   </section>
   <app-receipts *ngIf="user()?.role==='owner' && ownerPage==='receipts'" [receipts]="receipts()" [loading]="receiptsLoading()" [error]="receiptsError()" (refresh)="loadReceipts()" [voiding]="voidingSale()" [voidError]="voidSaleError" (voidSale)="voidReceipt($event)"></app-receipts>
   <div *ngIf="checkoutConfirm" class="modal-backdrop" (click)="closeCheckout()">
@@ -317,58 +328,66 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 
 .sales-line-wrap{margin-top:18px}.sales-line-legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:#776b60;margin-bottom:12px}.sales-line-legend span{display:inline-flex;align-items:center;gap:7px}.sales-line-legend i{display:inline-block;width:20px;height:3px;border-radius:3px}.sales-legend-income{background:#ae8052}.sales-legend-units{background:#4b8e7b}.sales-line-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}.sales-line-svg{display:block;width:100%;height:auto;max-height:300px;overflow:visible}.sales-axis-label{font-size:10px;fill:#897d70}.sales-line-wrap .chart-caption{margin:8px 0 0}
 
-/* POS workspace: products scroll independently; order summary remains visible. */
-.kiosk-pos-layout{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(250px,32%)!important;gap:16px!important;height:clamp(420px,calc(100dvh - 255px),850px);min-height:0;overflow:hidden;margin:16px 0!important;align-items:stretch}
-.kiosk-pos-layout .kiosk-product-scroll{min-width:0;min-height:0;max-height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;align-content:start;grid-template-columns:repeat(3,minmax(0,1fr));padding:3px 8px 10px 3px;scrollbar-width:thin}
-.kiosk-pos-layout .kiosk-fixed-cart{position:relative!important;top:auto!important;align-self:stretch!important;min-height:0;max-height:100%;display:flex;flex-direction:column;overflow:hidden;padding:17px}
-.kiosk-pos-layout .kiosk-fixed-cart h2{flex-shrink:0;margin:0 0 12px}
-.kiosk-pos-layout .kiosk-cart-items{min-height:0;flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
-.kiosk-pos-layout .cart-total{flex-shrink:0;margin:14px 0 12px;padding-top:12px;border-top:1px solid #eae3dc}
-.kiosk-pos-layout .checkout-actions{flex-shrink:0}
-.kiosk-pos-layout .kiosk-fixed-cart>.muted{flex-shrink:0;font-size:11px;margin-top:10px}
-.kiosk-pos-layout .kiosk-card{height:max-content}
-@media(max-width:1150px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.kiosk-pos-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) minmax(190px,38%);height:calc(100dvh - 210px);min-height:430px;gap:10px!important}.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr));padding-right:4px}.kiosk-pos-layout .kiosk-fixed-cart{padding:12px}.kiosk-pos-layout .kiosk-fixed-cart h2{font-size:16px;margin-bottom:5px}.kiosk-pos-layout .kiosk-fixed-cart>.muted{display:none}.kiosk-pos-layout .cart-total{margin:7px 0;padding-top:7px}.kiosk-pos-layout .checkout-actions{display:flex;gap:6px}.kiosk-pos-layout .checkout-actions button{flex:1;min-width:0;padding:9px 6px}}
-@media(max-width:400px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.kiosk-pos-layout .kiosk-info{padding:9px}.kiosk-pos-layout .kiosk-photo{padding:12px 4px;font-size:28px}}
-
-/* Kiosk layout matches reference: product grid above, anchored current order below on all screens. */
-.kiosk-pos-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) minmax(180px,35%)!important;gap:12px!important;height:clamp(430px,calc(100dvh - 235px),850px)!important;min-height:0!important;overflow:hidden!important;align-items:stretch!important}
-.kiosk-pos-layout .kiosk-product-scroll{grid-column:1!important;grid-row:1!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;align-content:start;min-height:0!important;max-height:100%!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}
-.kiosk-pos-layout .kiosk-fixed-cart{grid-column:1!important;grid-row:2!important;position:relative!important;top:auto!important;align-self:stretch!important;min-height:0!important;max-height:100%!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
-.kiosk-pos-layout .kiosk-cart-items{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important}
-.kiosk-pos-layout .cart-total,.kiosk-pos-layout .checkout-actions{flex-shrink:0!important}
-@media(max-width:760px){.kiosk-pos-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) minmax(170px,38%)!important;height:clamp(430px,calc(100dvh - 190px),760px)!important}.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-card{min-width:0!important}.kiosk-pos-layout .kiosk-info{padding:8px!important}.kiosk-pos-layout .kiosk-info strong{font-size:11px!important}.kiosk-pos-layout .kiosk-info p{font-size:10px!important}.kiosk-pos-layout .kiosk-photo{padding:10px 4px!important;font-size:25px!important}}
-@media(max-width:370px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-
-/* Compact kiosk catalog: four cards per row on desktop/tablet, two on phones. */
-.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
-.kiosk-pos-layout .kiosk-card{min-width:0!important;border-radius:12px!important}
-.kiosk-pos-layout .kiosk-photo{padding:13px 5px!important;font-size:29px!important;min-height:78px;display:flex;align-items:center;justify-content:center}
-.kiosk-pos-layout .kiosk-info{padding:11px!important}
-.kiosk-pos-layout .kiosk-info strong{display:block;font-size:12px!important;line-height:1.3;min-height:31px;overflow-wrap:anywhere}
-.kiosk-pos-layout .kiosk-info p{font-size:11px!important;margin:7px 0!important}
-.kiosk-pos-layout .kiosk-info .stock-indicator{font-size:10px!important;line-height:1.35}
-.kiosk-pos-layout .kiosk-info button{font-size:11px!important;padding:9px 5px!important;min-height:34px}
-@media(min-width:761px) and (max-width:1050px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-info{padding:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:66px;padding:9px 4px!important;font-size:25px!important}}
-@media(max-width:760px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-photo{min-height:62px;padding:9px 4px!important;font-size:25px!important}.kiosk-pos-layout .kiosk-info{padding:9px!important}}
-
-/* Kiosk: fill the available workspace and pin Current Order to its bottom. */
-.owner-page-scroll:has(.kiosk-pos-layout){display:flex!important;flex-direction:column!important;overflow:hidden!important;padding-bottom:0!important}
-.owner-page-scroll:has(.kiosk-pos-layout)>section.kiosk{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
-.owner-page-scroll .kiosk-pos-layout{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;margin:12px 0 0!important;grid-template-rows:minmax(0,1fr) minmax(0,auto)!important}
-.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(175px,26dvh,265px)!important;box-sizing:border-box!important;align-self:end!important}
-.kiosk-pos-layout .kiosk-product-scroll{height:100%!important}
+/* Kiosk workspace: keep filters visible and separate the catalog and cart areas. */
+.owner-page-scroll:has(.kiosk-pos-layout){display:flex;flex-direction:column;min-height:0;overflow:hidden;padding-bottom:0}
+.owner-page-scroll:has(.kiosk-pos-layout)>section.kiosk{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;overflow:hidden}
+.kiosk-category-nav{display:flex;flex:0 0 auto;flex-wrap:nowrap;align-items:center;gap:9px;min-width:0;max-width:100%;margin:0 0 12px;overflow-x:auto;overflow-y:hidden;padding:2px 3px 8px;scrollbar-width:thin;scrollbar-color:#c9c1b8 transparent;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;white-space:nowrap}
+.kiosk-category-nav button{flex:0 0 auto;min-height:42px;padding:9px 16px;border:1px solid #e7e1da;border-radius:24px;background:#fff;color:#554a41;font-size:13px;font-weight:650;white-space:nowrap;cursor:pointer}
+.kiosk-category-nav button:hover{border-color:#9b785e;background:#faf7f3}
+.kiosk-category-nav button.selected{border-color:#35546b;background:#35546b;color:#fff}
+.kiosk-category-nav button:focus-visible{outline:3px solid #bb926d;outline-offset:2px}
+.kiosk>p.stock-notice{flex:0 0 auto;margin:0 0 9px}
+.kiosk-pos-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,31%);grid-template-rows:minmax(0,1fr);gap:16px;flex:1 1 auto;width:100%;height:auto;min-height:0;max-height:none;margin:0;overflow:hidden;align-items:stretch}
+.kiosk-pos-layout .kiosk-product-scroll{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));grid-auto-rows:minmax(270px,max-content);align-content:start;align-items:stretch;gap:14px;grid-column:1;grid-row:1;min-width:0;min-height:0;height:auto;max-height:none;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:4px 9px 18px 3px;scrollbar-width:thin}
+.kiosk-pos-layout .kiosk-card{display:flex;flex-direction:column;align-self:stretch;width:100%;height:auto;min-width:0;min-height:270px;overflow:hidden;border-radius:12px}
+.kiosk-pos-layout .kiosk-photo-wrap{display:flex;flex:0 0 auto;align-items:center;justify-content:center;width:100%;min-height:82px;max-height:150px;aspect-ratio:16/7;box-sizing:border-box;padding:12px;font-size:clamp(27px,2.5vw,42px);line-height:1}
+.kiosk-pos-layout .kiosk-photo-wrap img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:center}
+.kiosk-pos-layout .kiosk-info{display:flex;flex:1 0 auto;flex-direction:column;min-width:0;padding:14px;gap:5px}
+.kiosk-pos-layout .kiosk-info strong{display:block;min-height:34px;font-size:clamp(12px,.95vw,15px);line-height:1.35;overflow-wrap:anywhere}
+.kiosk-pos-layout .kiosk-info p{margin:5px 0;font-size:clamp(11px,.85vw,14px)}
+.kiosk-pos-layout .kiosk-info .stock-indicator{font-size:clamp(10px,.75vw,12px)}
+.kiosk-pos-layout .kiosk-info button{display:flex;flex:0 0 auto;align-items:center;justify-content:center;min-height:44px;margin-top:auto;padding:9px 8px;font-size:clamp(11px,.8vw,13px);line-height:1.25;white-space:normal;overflow-wrap:anywhere}
+.kiosk-pos-layout .kiosk-empty-products{grid-column:1/-1;padding:24px;text-align:center}
+.kiosk-pos-layout .kiosk-fixed-cart{position:static;grid-column:2;grid-row:1;display:flex;flex-direction:column;align-self:stretch;min-width:0;min-height:0;max-width:100%;max-height:none;height:auto;overflow:hidden;padding:16px;border-radius:14px}
+.kiosk-pos-layout .kiosk-order-heading{display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #eee8e2}
+.kiosk-pos-layout .kiosk-order-heading h2{margin:0;font-size:18px;line-height:1.3;letter-spacing:-.3px}
+.kiosk-pos-layout .kiosk-order-count{padding:5px 10px;border-radius:20px;background:#f6f1eb;color:#7d6b5d;font-size:11px;white-space:nowrap}
+.kiosk-pos-layout .kiosk-cart-items{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;font-size:12px}
+.kiosk-pos-layout .kiosk-empty-cart{margin:8px 0;color:#998a7d;font-size:11px;line-height:1.4}
+.kiosk-pos-layout .kiosk-cart-items .cart-line{display:grid;grid-template-columns:minmax(0,1fr) max-content;grid-template-areas:"details total" "quantity total";align-items:center;column-gap:12px;row-gap:4px;width:100%;min-width:0;box-sizing:border-box;padding:7px 0;font-size:12px}
+.kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child{grid-area:details;min-width:0;text-align:left;overflow-wrap:break-word;word-break:normal}
+.kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child strong{display:block;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.kiosk-pos-layout .kiosk-cart-items .cart-line>.cart-qty{grid-area:quantity;display:flex;align-items:center;justify-content:flex-start;gap:7px;min-width:0}
+.kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{grid-area:total;align-self:center;min-width:0;text-align:right;white-space:nowrap}
+.kiosk-pos-layout .kiosk-cart-items .cart-line small{font-size:10px}
+.kiosk-pos-layout .kiosk-cart-items .cart-qty button{display:grid;width:29px;height:29px;min-width:29px;padding:0;place-items:center;line-height:1}
+.kiosk-pos-layout .cart-total{flex:0 0 auto;margin:10px 0;padding:10px 0;border-top:1px solid #eae3dc;font-size:14px}
+.kiosk-pos-layout .cart-total strong:last-child{font-size:18px;letter-spacing:-.35px}
+.kiosk-pos-layout .checkout-actions{display:grid;flex:0 0 auto;grid-template-columns:1fr 1fr;gap:9px}
+.kiosk-pos-layout .checkout-actions button{min-width:0;min-height:38px;padding:8px 10px;border-radius:9px;font-size:12px}
+.kiosk-pos-layout .checkout-actions button:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:1100px){.kiosk-pos-layout{grid-template-columns:minmax(0,1fr) minmax(240px,32%)}.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}}
 @media(max-width:760px){
- .owner-content:has(.kiosk-pos-layout){height:100dvh!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
- .owner-content:has(.kiosk-pos-layout) .owner-page-scroll{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
- .owner-page-scroll .kiosk-pos-layout{grid-template-rows:minmax(0,1fr) minmax(0,auto)!important;height:auto!important;min-height:0!important}
- .kiosk-pos-layout .kiosk-fixed-cart{height:clamp(175px,31dvh,250px)!important}
+ .kiosk-pos-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(220px,1fr) minmax(190px,clamp(190px,31dvh,250px));gap:10px}
+ .kiosk-pos-layout .kiosk-product-scroll{grid-column:1;grid-row:1;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;padding-right:5px}
+ .kiosk-pos-layout .kiosk-product-scroll{grid-auto-rows:minmax(250px,max-content)}
+ .kiosk-pos-layout .kiosk-card{min-height:250px}
+ .kiosk-pos-layout .kiosk-photo-wrap{min-height:66px;max-height:105px;padding:9px;font-size:27px}
+ .kiosk-pos-layout .kiosk-info{padding:10px}
+ .kiosk-pos-layout .kiosk-info strong{font-size:12px}
+ .kiosk-pos-layout .kiosk-info p{font-size:11px}
+ .kiosk-pos-layout .kiosk-info button{min-height:44px}
+ .kiosk-pos-layout .kiosk-fixed-cart{grid-column:1;grid-row:2;padding:11px 12px}
+ .kiosk-pos-layout .kiosk-order-heading h2{font-size:16px}
+ .kiosk-pos-layout .kiosk-cart-items .cart-line{column-gap:8px}
+ .kiosk-pos-layout .kiosk-cart-items .cart-qty button{width:25px;height:25px;min-width:25px}
+ .kiosk-pos-layout .cart-total{margin:7px 0;padding:7px 0}
+ .kiosk-pos-layout .cart-total strong:last-child{font-size:16px}
+ .kiosk-pos-layout .checkout-actions{gap:6px}
+ .kiosk-pos-layout .checkout-actions button{min-height:35px;padding:7px 6px}
 }
+@media(max-width:400px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px}.kiosk-pos-layout .kiosk-info{padding:9px}}
 
-/* Small bottom-position adjustment for the pinned kiosk order panel. */
-.owner-page-scroll:has(.kiosk-pos-layout){padding-bottom:0!important}
-.owner-page-scroll .kiosk-pos-layout{margin-bottom:-12px!important}
-@media(max-width:760px){.owner-page-scroll .kiosk-pos-layout{margin-bottom:-8px!important}}
 
 /* Dashboard KPI amounts: smaller type to keep large peso values on one line. */
 .dashboard-metrics .metric-card h2{font-size:clamp(18px,1.55vw,25px)!important;letter-spacing:-.7px!important;line-height:1.2!important;overflow-wrap:normal!important;word-break:normal!important;white-space:nowrap!important}
@@ -403,35 +422,6 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sales-chart-summary small{font-size:10px!important}
 .sales-chart-summary strong{font-size:15px!important}
 @media(max-width:760px){.sales-chart-summary>div{padding:8px!important;min-height:58px!important}.sales-chart-summary strong{font-size:clamp(11px,2.8vw,14px)!important}}
-
-/* Compact, professional anchored order summary. */
-.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(150px,22dvh,225px)!important;padding:13px 17px!important;border-radius:14px!important;border-color:#e8e1d8!important;box-shadow:0 3px 12px rgba(65,45,27,.035)!important;gap:0!important}
-.kiosk-pos-layout .kiosk-order-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:8px;flex-shrink:0}
-.kiosk-pos-layout .kiosk-order-heading h2{font-size:18px!important;line-height:1.3!important;margin:0!important;letter-spacing:-.3px}
-.kiosk-pos-layout .kiosk-order-count{font-size:11px;color:#7d6b5d;background:#f6f1eb;border-radius:20px;padding:5px 10px;white-space:nowrap}
-.kiosk-pos-layout .kiosk-cart-items{font-size:12px!important;min-height:0!important;scrollbar-width:thin}
-.kiosk-pos-layout .kiosk-empty-cart{font-size:11px!important;color:#998a7d!important;margin:8px 0!important;line-height:1.4!important}
-.kiosk-pos-layout .cart-line{padding:6px 0!important;gap:8px!important;font-size:12px!important}
-.kiosk-pos-layout .cart-line small{font-size:10px!important}
-.kiosk-pos-layout .cart-total{padding:9px 0!important;margin:5px 0 8px!important;font-size:14px!important;line-height:1.3!important}
-.kiosk-pos-layout .cart-total strong:last-child{font-size:18px!important;letter-spacing:-.35px}
-.kiosk-pos-layout .checkout-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important}
-.kiosk-pos-layout .checkout-actions button{min-height:37px!important;padding:8px 10px!important;font-size:12px!important;border-radius:9px!important}
-.kiosk-pos-layout .checkout-actions button:disabled{opacity:.55!important;cursor:not-allowed!important}
-@media(max-width:760px){.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(150px,26dvh,215px)!important;padding:11px 12px!important}.kiosk-pos-layout .kiosk-order-heading h2{font-size:16px!important}.kiosk-pos-layout .cart-total strong:last-child{font-size:16px!important}.kiosk-pos-layout .checkout-actions button{min-height:35px!important}}
-
-/* Show at least two order rows before the Current Order list scrolls. */
-.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(205px,29dvh,280px)!important}
-.kiosk-pos-layout .kiosk-cart-items{min-height:84px!important;flex:1 1 auto!important;overflow-y:auto!important}
-@media(max-width:760px){.kiosk-pos-layout .kiosk-fixed-cart{height:clamp(205px,32dvh,265px)!important}.kiosk-pos-layout .kiosk-cart-items{min-height:82px!important}}
-
-/* Align product details, quantity controls and line totals across every cart row. */
-.kiosk-pos-layout .kiosk-cart-items .cart-line{display:grid!important;grid-template-columns:minmax(0,1fr) 116px minmax(90px,1fr)!important;align-items:center!important;column-gap:12px!important;flex-wrap:nowrap!important}
-.kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child{min-width:0!important;text-align:left!important}
-.kiosk-pos-layout .kiosk-cart-items .cart-line>.cart-qty{display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-width:0!important}
-.kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{text-align:right!important;white-space:nowrap!important;min-width:0!important}
-.kiosk-pos-layout .kiosk-cart-items .cart-qty button{width:29px!important;height:29px!important;min-width:29px!important;padding:0!important;display:grid!important;place-items:center!important;line-height:1!important}
-@media(max-width:480px){.kiosk-pos-layout .kiosk-cart-items .cart-line{grid-template-columns:minmax(0,1fr) 96px minmax(66px,.7fr)!important;column-gap:5px!important}.kiosk-pos-layout .kiosk-cart-items .cart-qty button{width:25px!important;height:25px!important;min-width:25px!important}.kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{font-size:11px!important}}
 
 /* Slim, unobtrusive scrollbar for dashboard content only. */
 .owner-page-scroll:has(.sales-chart-panel){scrollbar-width:thin!important;scrollbar-color:#c9c1b8 transparent!important}
@@ -474,20 +464,6 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
 .sales-line-scroll{width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin}
 .sales-line-svg{display:block!important;width:100%!important;min-width:700px!important;height:clamp(220px,24vw,320px)!important;max-height:none!important;preserve-aspect-ratio:none}
 @media(max-width:760px){.sales-line-svg{height:240px!important}}
-
-/* Fluid kiosk cards: scale with available laptop/desktop space without stretching imagery. */
-.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(9px,1vw,18px)!important;align-content:start!important}
-.kiosk-pos-layout .kiosk-card{width:100%!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-self:start!important;overflow:hidden!important}
-.kiosk-pos-layout .kiosk-photo-wrap{width:100%!important;box-sizing:border-box!important;aspect-ratio:16/6!important;height:auto!important;min-height:86px!important;max-height:170px!important;padding:12px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:clamp(27px,2.5vw,45px)!important;line-height:1!important;flex-shrink:0!important}
-.kiosk-pos-layout .kiosk-photo-wrap img{display:block!important;max-width:100%!important;max-height:100%!important;width:auto!important;height:auto!important;object-fit:contain!important;object-position:center!important}
-.kiosk-pos-layout .kiosk-info{display:flex!important;flex-direction:column!important;flex:1!important;min-width:0!important;padding:clamp(10px,1.1vw,18px)!important;gap:5px!important}
-.kiosk-pos-layout .kiosk-info strong{font-size:clamp(12px,.95vw,15px)!important;line-height:1.35!important;min-height:0!important}
-.kiosk-pos-layout .kiosk-info p{font-size:clamp(11px,.85vw,14px)!important;margin:5px 0!important}
-.kiosk-pos-layout .kiosk-info .stock-indicator{font-size:clamp(10px,.75vw,12px)!important}
-.kiosk-pos-layout .kiosk-info button{margin-top:auto!important;min-height:38px!important;font-size:clamp(11px,.8vw,13px)!important}
-@media(min-width:1600px){.kiosk-pos-layout .kiosk-photo-wrap{aspect-ratio:16/5!important;max-height:160px!important}}
-@media(min-width:761px) and (max-width:1050px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(4,minmax(0,1fr))!important}.kiosk-pos-layout .kiosk-photo-wrap{min-height:72px!important;aspect-ratio:16/7!important;font-size:28px!important}}
-@media(max-width:760px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.kiosk-pos-layout .kiosk-photo-wrap{min-height:65px!important;max-height:105px!important;aspect-ratio:16/7!important;font-size:26px!important;padding:8px!important}.kiosk-pos-layout .kiosk-info{padding:9px!important}.kiosk-pos-layout .kiosk-info button{min-height:34px!important}}
 
 /* Inventory workspace refresh: scoped to inventory only */
 .inventory-page{display:grid;gap:22px;min-width:0;padding-bottom:28px}.inventory-page .inventory-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin:0}.inventory-page .inventory-heading h1{font-size:clamp(25px,2.5vw,34px);line-height:1.15;letter-spacing:-.035em;margin:4px 0 9px}.inventory-page .inventory-heading p:not(.eyebrow){color:#796d62;line-height:1.5;margin:0}.inventory-page .inventory-summary{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0}.inventory-page .inventory-summary article{min-width:0;padding:18px;border:1px solid #e9e4df;border-radius:16px;background:#fff;box-shadow:0 4px 16px rgba(44,33,24,.035)}.inventory-page .inventory-summary small{font-size:12px;font-weight:600;color:#81766e}.inventory-page .inventory-summary h2{font-size:clamp(19px,2vw,27px);letter-spacing:-.025em;overflow-wrap:anywhere;margin:10px 0 0;color:#292420}.inventory-page .inventory-layout{grid-template-columns:minmax(275px,.85fr) minmax(0,1.8fr);align-items:start;gap:18px}.inventory-page .panel{min-width:0;border:1px solid #ebe5df;border-radius:18px;background:#fff;box-shadow:0 4px 22px rgba(44,33,24,.035)}.inventory-page .inventory-panel-intro p,.inventory-page .inventory-list-heading p{color:#84786e;font-size:13px;line-height:1.5;margin:5px 0 0}.inventory-page .inventory-create form{margin-top:20px;gap:14px}.inventory-page label{font-size:13px;font-weight:600;color:#4c423a}.inventory-page input,.inventory-page select{min-height:42px;border:1px solid #ddd6ce;border-radius:10px;background:#fff;color:#302923;outline-offset:2px}.inventory-page input:focus,.inventory-page select:focus{border-color:#a47a54;outline:2px solid rgba(164,122,84,.18)}.inventory-page .inventory-list-heading{align-items:flex-start;gap:14px;margin-bottom:14px}.inventory-page .inventory-search-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.inventory-page .inventory-search-tools input{width:min(260px,100%);flex:1 1 160px}.inventory-page .inventory-search-tools select{width:auto;flex:0 1 145px;padding:0 10px}.inventory-page .inventory-results-count{font-size:12px;color:#8b7e72;margin:0 0 7px}.inventory-page .inventory-item-row{padding:16px 12px;border:1px solid transparent;border-bottom-color:#f0ebe5;border-radius:10px;transition:background .16s ease;min-width:0}.inventory-page .inventory-item-row:hover{background:#faf8f5}.inventory-page .inventory-item-row>div{min-width:0;flex:1}.inventory-page .inventory-item-row strong{font-size:14px;color:#302923;overflow-wrap:anywhere}.inventory-page .inventory-stock{font-weight:650;color:#3f6651}.inventory-page .inventory-stock.inventory-low{color:#b04b39}.inventory-page .inventory-manage-button{white-space:nowrap;flex-shrink:0}.inventory-page .inventory-empty{padding:28px 12px;text-align:center;color:#8a7c70;background:#faf8f6;border-radius:12px}.inventory-page .inventory-history-wrap{max-width:100%;overflow-x:auto}.inventory-page .inventory-history-table th{background:#faf8f5;color:#74685e;font-size:12px;font-weight:700;white-space:nowrap}.inventory-page .inventory-history-table td{font-size:13px;color:#463d36}.inventory-page .inventory-history-table tbody tr:hover{background:#fcfaf8}.inventory-modal .inventory-mode-tabs{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.inventory-modal .inventory-mode-tabs button{font-size:12px;line-height:1.3;border-radius:9px}.inventory-modal .modal-title-row h2{letter-spacing:-.025em}.inventory-modal form{padding-top:12px}.inventory-modal form label{font-size:13px;font-weight:600}.inventory-modal form input{min-height:44px;border-radius:10px}.inventory-modal form button[type=submit]{min-height:44px;border-radius:10px}@media(max-width:1150px){.inventory-page .inventory-summary{grid-template-columns:repeat(3,minmax(0,1fr))}.inventory-page .inventory-layout{grid-template-columns:minmax(0,1fr)}}@media(max-width:680px){.inventory-page{gap:15px}.inventory-page .inventory-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.inventory-page .inventory-summary article{padding:14px}.inventory-page .inventory-heading .secondary-button{width:100%}.inventory-page .inventory-item-row{align-items:flex-start;flex-wrap:wrap;gap:10px}.inventory-page .inventory-manage-button{width:100%}.inventory-page .inventory-search-tools{width:100%}.inventory-page .inventory-search-tools input{flex:1 1 100%}.inventory-page .inventory-search-tools select{flex:1 1 100%}.inventory-modal .inventory-mode-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -550,21 +526,22 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
   overflow-x:hidden!important;overflow-y:auto!important;
  }
  .kiosk-pos-layout .kiosk-cart-items .cart-line{
-  display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(100px,150px)!important;
-  align-items:center!important;column-gap:18px!important;width:100%!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;
+  grid-template-areas:"details total" "quantity total"!important;
+  align-items:center!important;column-gap:12px!important;row-gap:5px!important;width:100%!important;
   min-width:0!important;box-sizing:border-box!important;
  }
  .kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child{
-  min-width:0!important;overflow-wrap:anywhere!important;
+  grid-area:details!important;min-width:0!important;overflow-wrap:break-word!important;word-break:normal!important;
  }
  .kiosk-pos-layout .kiosk-cart-items .cart-line>div:first-child strong{
-  display:block!important;white-space:normal!important;overflow-wrap:anywhere!important;
+  display:block!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;
  }
  .kiosk-pos-layout .kiosk-cart-items .cart-line>.cart-qty{
-  width:auto!important;justify-content:center!important;white-space:nowrap!important;
+  grid-area:quantity!important;width:auto!important;justify-content:flex-start!important;white-space:nowrap!important;
  }
  .kiosk-pos-layout .kiosk-cart-items .cart-line>strong:last-child{
-  min-width:0!important;text-align:right!important;white-space:nowrap!important;
+  grid-area:total!important;align-self:center!important;min-width:0!important;text-align:right!important;white-space:nowrap!important;
  }
  .kiosk-pos-layout .cart-total{
   display:flex!important;align-items:center!important;justify-content:space-between!important;
@@ -674,8 +651,11 @@ class AppComponent {
  resetOpen=false;resetConfirmation='';resetError='';resetLoading=signal(false);
  openReset(){this.resetConfirmation='';this.resetError='';this.resetOpen=true;}
  closeReset(){if(!this.resetLoading()){this.resetOpen=false;this.resetConfirmation='';}}
- resetBusinessData(){if(this.resetLoading()||this.resetConfirmation!=='RESET HEBREWS DATA')return;this.resetLoading.set(true);this.resetError='';this.http.post(this.api+'/owner/reset-business-data',{confirmation:this.resetConfirmation},{headers:this.headers()}).subscribe({next:()=>{this.resetLoading.set(false);this.closeReset();this.clearCart();this.products.set([]);this.productStocks.set([]);this.categories.set([]);this.receipts.set([]);this.loadSummary();this.loadSalesTrend();this.loadProducts();this.loadProductStocks();},error:e=>{this.resetLoading.set(false);this.resetError=e.error?.error||'Reset failed. Check backend logs.';}});}
+ resetBusinessData(){if(this.resetLoading()||this.resetConfirmation!=='RESET HEBREWS DATA')return;this.resetLoading.set(true);this.resetError='';this.http.post(this.api+'/owner/reset-business-data',{confirmation:this.resetConfirmation},{headers:this.headers()}).subscribe({next:()=>{this.resetLoading.set(false);this.closeReset();this.clearCart();this.kioskCategory='';this.products.set([]);this.productStocks.set([]);this.categories.set([]);this.receipts.set([]);this.loadSummary();this.loadSalesTrend();this.loadProducts();this.loadProductStocks();},error:e=>{this.resetLoading.set(false);this.resetError=e.error?.error||'Reset failed. Check backend logs.';}});}
  cart:{id:string;name:string;price:number;qty:number;sizeOz?:number;key?:string}[]=[];
+ kioskCategory='';
+ get kioskCategories(){return [{name:'All Products',value:''},...Array.from(new Set(this.products().map(product=>product.category?.name||'Uncategorized'))).sort((a,b)=>a.localeCompare(b)).map(name=>({name,value:name}))];}
+ get kioskProducts(){return this.kioskCategory?this.products().filter(product=>(product.category?.name||'Uncategorized')===this.kioskCategory):this.products();}
  productVariants=signal<any[]>([]);selectedDrink:any=null;selectedDrinkSize=12;
  variantsFor(product:any){return this.productVariants().filter(v=>String(v.product)===String(product._id));}
  get selectedDrinkVariant(){return this.variantsFor(this.selectedDrink||{}).find(v=>v.sizeOz===Number(this.selectedDrinkSize));}
@@ -753,6 +733,6 @@ class AppComponent {
  private headers(){return {Authorization:'Bearer '+this.token()};}
  loadSummary(){this.http.get<any>(this.api+'/owner/summary',{headers:this.headers()}).subscribe({next:r=>this.summary.set(r),error:()=>this.error.set('Could not load owner summary.')});}
  loadProducts(){this.loadProductVariants();this.http.get<any[]>(this.api+'/catalog/products',{headers:this.headers()}).subscribe({next:r=>this.products.set(r),error:()=>this.error.set('Could not load products.')});}
- logout(){this.receipts.set([]);this.checkoutConfirm=false;this.checkoutReceipt=null;this.pendingCheckoutKey=null;this.cart=[];this.showAddProduct=false;this.selectedProduct=null;this.helpOpen=false;this.closeHelpTutorial();this.ownerPage='dashboard';this.sidebarOpen=false;this.user.set(null);this.token.set('');this.summary.set(null);this.products.set([]);this.productStocks.set([]);this.stockNotice='';this.salesTrend.set([]);this.salesTrendError.set('');this.error.set('');}
+ logout(){this.receipts.set([]);this.checkoutConfirm=false;this.checkoutReceipt=null;this.pendingCheckoutKey=null;this.cart=[];this.kioskCategory='';this.showAddProduct=false;this.selectedProduct=null;this.helpOpen=false;this.closeHelpTutorial();this.ownerPage='dashboard';this.sidebarOpen=false;this.user.set(null);this.token.set('');this.summary.set(null);this.products.set([]);this.productStocks.set([]);this.stockNotice='';this.salesTrend.set([]);this.salesTrendError.set('');this.error.set('');}
 }
 bootstrapApplication(AppComponent,{providers:[provideHttpClient()]}).catch(console.error);
