@@ -27,7 +27,8 @@ r.get('/daily-summary',wrap(async(req,res)=>{
  res.json({date,orders:row.orders||0,revenue:row.revenue||0,cogs:row.cogs||0,grossProfit:(row.revenue||0)-(row.cogs||0),topProducts:top});
 }));
 r.post('/',wrap(async(req,res)=>{
- const {businessDate,entryKey,items}=req.body||{};
+ const {businessDate,entryKey,items,cashReceived}=req.body||{};
+ if(typeof cashReceived!=='number'||!Number.isFinite(cashReceived)||cashReceived<0)return bad(res,'Valid cash received amount required');
  if(!validBusinessDate(businessDate)||typeof entryKey!=='string'||entryKey.length<8||entryKey.length>100||!Array.isArray(items)||items.length<1||items.length>100)return bad(res);
  const seen=new Set();
  for(const line of items){const key=String(line.productId)+':'+String(line.sizeOz??'default');if(!id(line.productId)||!Number.isSafeInteger(line.quantity)||line.quantity<=0||(line.sizeOz!==undefined&&![6,12,16,22].includes(Number(line.sizeOz)))||seen.has(key))return bad(res,'Invalid or duplicate product/size line');seen.add(key);}
@@ -76,7 +77,10 @@ r.post('/',wrap(async(req,res)=>{
   }
   const totalRevenue=Math.round(lines.reduce((s,l)=>s+l.lineRevenue,0)*100)/100;
   const totalCost=Math.round(lines.reduce((s,l)=>s+l.lineCost,0)*100)/100;
-  [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,totalCost,recordedBy:req.user._id}],{session,ordered:true});
+  const received=Math.round(cashReceived*100)/100;
+  if(received<totalRevenue)throw Object.assign(new Error('Cash received must be at least the grand total'),{status:400});
+  const changeAmount=Math.round((received-totalRevenue)*100)/100;
+  [saved]=await DailySale.create([{businessDate,entryKey,items:lines,totalRevenue,cashReceived:received,changeAmount,totalCost,recordedBy:req.user._id}],{session,ordered:true});
   await AuditLog.create([{actor:req.user._id,action:'sale.post',entity:'DailySale',entityId:saved._id,details:{businessDate,entryKey,totalRevenue,totalCost}}],{session,ordered:true});
  });
  res.status(201).json(saved);
