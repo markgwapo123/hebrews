@@ -13,6 +13,8 @@ const schema=new mongoose.Schema({
  entryKey:{type:String,required:true,unique:true},
  items:{type:[itemSchema],required:true},
  totalRevenue:{type:Number,required:true,min:0},
+ cashReceived:{type:Number,min:0},
+ changeAmount:{type:Number,min:0},
  totalCost:{type:Number,required:true,min:0},
  recordedBy:{type:mongoose.Schema.Types.ObjectId,ref:'User',required:true},
  status:{type:String,enum:['posted','void'],default:'posted'}
