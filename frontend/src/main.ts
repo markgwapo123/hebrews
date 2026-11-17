@@ -193,9 +193,14 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
    <section class="product-modal checkout-confirm" role="dialog" aria-modal="true" aria-labelledby="checkout-title" (click)="$event.stopPropagation()">
     <div class="modal-title-row"><div><h2 id="checkout-title">Confirm Checkout</h2><p>Review this order before recording the sale.</p></div><button type="button" class="modal-close" [disabled]="checkoutLoading()" (click)="closeCheckout()">×</button></div>
     <div class="checkout-summary-line" *ngFor="let item of cart"><span>{{item.name}} × {{item.qty}}</span><strong>₱{{item.price*item.qty | number:'1.2-2'}}</strong></div>
-    <div class="cart-total"><strong>Total to Record</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div>
+    <div class="cart-total"><strong>Grand Total</strong><strong>₱{{cartTotal | number:'1.2-2'}}</strong></div>
+    <label class="checkout-cash-field">Cash Received
+     <span class="checkout-cash-input"><span>₱</span><input type="number" name="cashReceived" [(ngModel)]="cashReceived" [ngModelOptions]="{standalone:true}" min="0" step="0.01" inputmode="decimal" placeholder="Enter customer's payment" [disabled]="checkoutLoading()"></span>
+    </label>
+    <div class="checkout-change-row"><span>Change</span><strong>₱{{checkoutChange | number:'1.2-2'}}</strong></div>
+    <p *ngIf="cashReceived!==null && !checkoutPaymentValid" class="error" role="alert">Cash received must be at least the grand total.</p>
     <p *ngIf="checkoutError" class="error" role="alert">{{checkoutError}}</p>
-    <div class="modal-actions"><button type="button" class="secondary-button" [disabled]="checkoutLoading()" (click)="closeCheckout()">Cancel</button><button type="button" [disabled]="checkoutLoading()" (click)="confirmCheckout()">{{checkoutLoading()?'Processing...':'Confirm & Checkout'}}</button></div>
+    <div class="modal-actions"><button type="button" class="secondary-button" [disabled]="checkoutLoading()" (click)="closeCheckout()">Cancel</button><button type="button" [disabled]="checkoutLoading() || !checkoutPaymentValid" (click)="confirmCheckout()">{{checkoutLoading()?'Processing...':'Confirm & Checkout'}}</button></div>
    </section>
   </div>
   <div *ngIf="checkoutReceipt" class="modal-backdrop" (click)="checkoutReceipt=null">
@@ -203,7 +208,9 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
     <div class="modal-title-row"><div><h2>✓ Checkout Successful</h2><p>Sale recorded successfully. Inventory is managed separately.</p></div><button type="button" class="modal-close" (click)="checkoutReceipt=null">×</button></div>
     <p>Receipt #{{checkoutReceipt._id.slice(-8).toUpperCase()}}</p>
     <div class="checkout-summary-line" *ngFor="let item of checkoutReceipt.items"><span>{{receiptProductName(item.product)}} × {{item.quantity}}</span><strong>₱{{item.lineRevenue | number:'1.2-2'}}</strong></div>
-    <div class="cart-total"><strong>Total</strong><strong>₱{{checkoutReceipt.totalRevenue | number:'1.2-2'}}</strong></div>
+    <div class="cart-total"><strong>Grand Total</strong><strong>₱{{checkoutReceipt.totalRevenue | number:'1.2-2'}}</strong></div>
+    <div class="checkout-payment-summary"><span>Cash Received</span><strong>₱{{checkoutReceipt.cashReceived | number:'1.2-2'}}</strong></div>
+    <div class="checkout-payment-summary"><span>Change</span><strong>₱{{checkoutReceipt.changeAmount | number:'1.2-2'}}</strong></div>
     <button type="button" (click)="viewCheckoutReceipt()">View / Print Receipt</button>
    </section>
   </div>
@@ -384,7 +391,7 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
  .kiosk-pos-layout .cart-total{margin:7px 0;padding:7px 0}
  .kiosk-pos-layout .cart-total strong:last-child{font-size:16px}
  .kiosk-pos-layout .checkout-actions{gap:6px}
- .kiosk-pos-layout .checkout-actions button{min-height:35px;padding:7px 6px}
+ .checkout-cash-field{display:grid;gap:8px;margin:14px 0;font-weight:700;color:#3d342d}\n .checkout-cash-input{display:flex;align-items:center;gap:8px;border:1px solid #d8cec4;border-radius:10px;padding:0 12px;background:#fff;min-height:48px}\n .checkout-cash-input input{border:0;outline:0;box-shadow:none!important;width:100%;min-width:0;font:inherit;font-size:18px;background:transparent;color:#302923}\n .checkout-change-row,.checkout-payment-summary{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0}\n .checkout-change-row{border-top:1px dashed #d8cec4;font-weight:750}\n .checkout-payment-summary{font-size:14px;color:#62574e}\n .checkout-payment-summary strong{color:#302923}\n .kiosk-pos-layout .checkout-actions button{min-height:35px;padding:7px 6px}
 }
 @media(max-width:400px){.kiosk-pos-layout .kiosk-product-scroll{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:7px}.kiosk-pos-layout .kiosk-info{padding:9px}}
 
@@ -634,19 +641,22 @@ class AppComponent {
  dailySalesDate=new Date().toLocaleDateString('en-CA');dailySales=signal<any>(null);dailySalesLoading=signal(false);dailySalesError='';
  loadDailySales(){if(!/^\d{4}-\d{2}-\d{2}$/.test(this.dailySalesDate)){this.dailySalesError='Choose a valid date.';return;}this.dailySalesLoading.set(true);this.dailySalesError='';this.http.get<any>(this.api+'/sales/daily-summary?date='+encodeURIComponent(this.dailySalesDate),{headers:this.headers()}).subscribe({next:r=>{this.dailySales.set(r);this.dailySalesLoading.set(false);},error:e=>{this.dailySalesError=e.error?.error||'Could not load daily sales.';this.dailySalesLoading.set(false);}});}
  receipts=signal<any[]>([]);receiptsLoading=signal(false);receiptsError=signal('');voidingSale=signal(false);voidSaleError='';
- checkoutConfirm=false;checkoutError='';checkoutLoading=signal(false);checkoutReceipt:any=null;
+ checkoutConfirm=false;checkoutError='';checkoutLoading=signal(false);checkoutReceipt:any=null;cashReceived:number|null=null;
  private pendingCheckoutKey:string|null=null;
+ get checkoutPaymentValid(){const received=Number(this.cashReceived);return this.cashReceived!==null&&this.cashReceived!=='' as any&&Number.isFinite(received)&&received>=this.cartTotal;}
+ get checkoutChange(){return Math.max(0,Math.round((Number(this.cashReceived||0)-this.cartTotal)*100)/100);}
  receiptProductName(product:any){return product?.name || this.products().find(p=>String(p._id)===String(product))?.name || 'Product';}
  voidReceipt(saleId:string){if(this.voidingSale())return;this.voidingSale.set(true);this.voidSaleError='';this.http.post(this.api+'/sales/'+saleId+'/void',{}, {headers:this.headers()}).subscribe({next:()=>{this.voidingSale.set(false);this.loadReceipts();this.loadSummary();this.loadProductStocks();this.loadInventory();this.loadInventoryMovements();this.loadSalesTrend();},error:e=>{this.voidingSale.set(false);this.voidSaleError=e.error?.error||'Unable to void this sale.';}});}
  loadReceipts(){this.receiptsLoading.set(true);this.receiptsError.set('');this.http.get<any[]>(this.api+'/sales',{headers:this.headers()}).subscribe({next:r=>{this.receipts.set(r);this.receiptsLoading.set(false);},error:()=>{this.receiptsError.set('Unable to load receipts.');this.receiptsLoading.set(false);}});}
- openCheckout(){if(!this.cart.length||this.checkoutLoading())return;this.checkoutError='';this.pendingCheckoutKey=null;this.checkoutConfirm=true;}
+ openCheckout(){if(!this.cart.length||this.checkoutLoading())return;this.checkoutError='';this.cashReceived=null;this.pendingCheckoutKey=null;this.checkoutConfirm=true;}
  closeCheckout(){if(!this.checkoutLoading()){this.checkoutConfirm=false;this.pendingCheckoutKey=null;}}
  confirmCheckout(){if(this.checkoutLoading()||!this.cart.length)return;this.checkoutError='';
+  if(!this.checkoutPaymentValid){this.checkoutError='Cash received must be at least the grand total.';return;}
   if(!this.pendingCheckoutKey)this.pendingCheckoutKey='kiosk-'+crypto.randomUUID();
   const now=new Date(),businessDate=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
   const items=this.cart.map(i=>({productId:i.id,quantity:i.qty,...(i.sizeOz?{sizeOz:i.sizeOz}:{})}));
   this.checkoutLoading.set(true);
-  this.http.post<any>(this.api+'/sales',{businessDate,entryKey:this.pendingCheckoutKey,items},{headers:this.headers()}).subscribe({next:sale=>{this.checkoutLoading.set(false);this.checkoutConfirm=false;this.checkoutReceipt={...sale,items:sale.items.map((item:any)=>({...item,product:{name:this.products().find(p=>String(p._id)===String(item.product))?.name||'Product'}}))};this.pendingCheckoutKey=null;this.clearCart();this.loadProductStocks();this.loadSummary();this.loadSalesTrend();this.loadReceipts();},error:e=>{this.checkoutLoading.set(false);this.checkoutError=e.status===0?'Network error. Check Sales Receipts before retrying to avoid duplicate sales.':e.error?.error||'Checkout failed. Please try again.';if(e.status===409)this.loadProductStocks();}});}
+  this.http.post<any>(this.api+'/sales',{businessDate,entryKey:this.pendingCheckoutKey,items,cashReceived:Number(this.cashReceived)},{headers:this.headers()}).subscribe({next:sale=>{this.checkoutLoading.set(false);this.checkoutConfirm=false;this.checkoutReceipt={...sale,items:sale.items.map((item:any)=>({...item,product:{name:this.products().find(p=>String(p._id)===String(item.product))?.name||'Product'}}))};this.pendingCheckoutKey=null;this.clearCart();this.loadProductStocks();this.loadSummary();this.loadSalesTrend();this.loadReceipts();},error:e=>{this.checkoutLoading.set(false);this.checkoutError=e.status===0?'Network error. Check Sales Receipts before retrying to avoid duplicate sales.':e.error?.error||'Checkout failed. Please try again.';if(e.status===409)this.loadProductStocks();}});}
  viewCheckoutReceipt(){this.checkoutReceipt=null;this.navigateOwner('receipts');}
  resetOpen=false;resetConfirmation='';resetError='';resetLoading=signal(false);
  openReset(){this.resetConfirmation='';this.resetError='';this.resetOpen=true;}
