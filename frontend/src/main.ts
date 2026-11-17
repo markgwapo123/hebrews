@@ -643,7 +643,7 @@ class AppComponent {
  receipts=signal<any[]>([]);receiptsLoading=signal(false);receiptsError=signal('');voidingSale=signal(false);voidSaleError='';
  checkoutConfirm=false;checkoutError='';checkoutLoading=signal(false);checkoutReceipt:any=null;cashReceived:number|null=null;
  private pendingCheckoutKey:string|null=null;
- get checkoutPaymentValid(){const received=Number(this.cashReceived);return this.cashReceived!==null&&this.cashReceived!=='' as any&&Number.isFinite(received)&&received>=this.cartTotal;}
+ get checkoutPaymentValid(){const received=Number(this.cashReceived);return this.cashReceived!==null&&Number.isFinite(received)&&received>=this.cartTotal;}
  get checkoutChange(){return Math.max(0,Math.round((Number(this.cashReceived||0)-this.cartTotal)*100)/100);}
  receiptProductName(product:any){return product?.name || this.products().find(p=>String(p._id)===String(product))?.name || 'Product';}
  voidReceipt(saleId:string){if(this.voidingSale())return;this.voidingSale.set(true);this.voidSaleError='';this.http.post(this.api+'/sales/'+saleId+'/void',{}, {headers:this.headers()}).subscribe({next:()=>{this.voidingSale.set(false);this.loadReceipts();this.loadSummary();this.loadProductStocks();this.loadInventory();this.loadInventoryMovements();this.loadSalesTrend();},error:e=>{this.voidingSale.set(false);this.voidSaleError=e.error?.error||'Unable to void this sale.';}});}
