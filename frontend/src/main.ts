@@ -568,6 +568,125 @@ type User = { id:string; name:string; email:string; role:'owner'|'staff' };
  }
 }
 
+
+/* Checkout experience: clearer payment flow and stronger visual hierarchy. */
+.checkout-confirm,.checkout-success{
+ width:min(100%,560px)!important;max-width:560px!important;
+ padding:clamp(20px,3vw,30px)!important;border:1px solid #e8e1d9;
+ border-radius:22px!important;background:#fff;box-shadow:0 26px 80px rgba(28,24,20,.24);
+}
+.checkout-confirm .modal-title-row,.checkout-success .modal-title-row{
+ align-items:center!important;padding-bottom:18px;margin-bottom:16px;
+ border-bottom:1px solid #eee9e3;
+}
+.checkout-confirm .modal-title-row h2,.checkout-success .modal-title-row h2{
+ color:#302923;font-size:clamp(21px,3vw,25px);font-weight:800;letter-spacing:-.035em;
+}
+.checkout-confirm .modal-title-row p,.checkout-success .modal-title-row p{
+ color:#82766b;font-size:13px;line-height:1.5;margin:5px 0 0;
+}
+.checkout-confirm .checkout-summary-line,.checkout-success .checkout-summary-line{
+ display:flex;align-items:center;justify-content:space-between;gap:14px;
+ padding:11px 2px;border-bottom:1px solid #f0ece7;color:#51473f;font-size:13px;
+}
+.checkout-confirm .checkout-summary-line span,.checkout-success .checkout-summary-line span{
+ min-width:0;overflow-wrap:anywhere;line-height:1.45;
+}
+.checkout-confirm .checkout-summary-line strong,.checkout-success .checkout-summary-line strong{
+ flex:0 0 auto;color:#3c332c;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.checkout-confirm .cart-total,.checkout-success .cart-total{
+ display:flex;justify-content:space-between;align-items:center;gap:12px;
+ margin:15px 0 20px!important;padding:16px 17px!important;
+ border:1px solid #dce8f5!important;border-radius:14px;
+ background:#f2f7fd!important;color:#27496d!important;font-size:14px!important;
+}
+.checkout-confirm .cart-total strong:first-child,.checkout-success .cart-total strong:first-child{
+ font-size:13px;color:#526b83;
+}
+.checkout-confirm .cart-total strong:last-child,.checkout-success .cart-total strong:last-child{
+ font-size:clamp(22px,4vw,27px)!important;letter-spacing:-.04em;
+ color:#1e4772;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.checkout-confirm .checkout-cash-field{
+ display:grid!important;gap:9px!important;margin:0 0 12px!important;
+ color:#40372f!important;font-size:14px!important;font-weight:750!important;
+}
+.checkout-confirm .checkout-cash-input{
+ display:flex;align-items:center;gap:10px;min-height:58px;padding:0 16px;
+ border:1.5px solid #cbd8e6;border-radius:13px;background:#fbfdff;
+ color:#526b83;font-size:19px;font-weight:750;transition:border-color .15s,box-shadow .15s;
+}
+.checkout-confirm .checkout-cash-input:focus-within{
+ border-color:#4d82b7;box-shadow:0 0 0 4px rgba(77,130,183,.12);
+}
+.checkout-confirm .checkout-cash-input>span{font-size:20px;color:#526b83}
+.checkout-confirm .checkout-cash-input input{
+ display:block!important;width:100%!important;min-width:0!important;height:54px;
+ margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+ outline:0!important;box-shadow:none!important;background:transparent!important;
+ color:#263f59!important;font-size:22px!important;font-weight:750!important;
+ font-variant-numeric:tabular-nums;
+}
+.checkout-confirm .checkout-cash-input input::placeholder{
+ color:#a5b0bc;font-size:14px;font-weight:450;
+}
+.checkout-confirm .checkout-change-row{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ margin-top:12px;padding:14px 16px;border:1px solid #d9e9df;
+ border-radius:13px;background:#f2faf5;color:#42644e;font-size:14px;font-weight:700;
+}
+.checkout-confirm .checkout-change-row strong{
+ color:#23643e;font-size:22px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+}
+.checkout-confirm .error{
+ margin:12px 0 0;padding:11px 13px;border:1px solid #f0c9c2;
+ border-radius:10px;background:#fff5f3;color:#a33f32;font-size:12px;line-height:1.5;
+}
+.checkout-confirm .modal-actions{
+ display:grid!important;grid-template-columns:minmax(105px,.7fr) minmax(0,1.5fr);
+ gap:10px!important;margin-top:22px!important;
+}
+.checkout-confirm .modal-actions button{
+ min-height:48px!important;padding:12px 16px!important;border-radius:11px!important;
+ font-size:13px!important;font-weight:750!important;
+}
+.checkout-confirm .modal-actions button:last-child{
+ background:#315f8b!important;color:#fff!important;box-shadow:0 5px 13px rgba(49,95,139,.18);
+}
+.checkout-confirm .modal-actions button:last-child:hover:not(:disabled){background:#254e75!important}
+.checkout-confirm .modal-actions button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}
+.checkout-success .checkout-payment-summary{
+ display:flex;justify-content:space-between;align-items:center;gap:12px;
+ padding:11px 2px;color:#76695e;font-size:13px;
+}
+.checkout-success .checkout-payment-summary strong{
+ color:#3d5545;font-size:15px;font-variant-numeric:tabular-nums;
+}
+.checkout-success>button{
+ width:100%;min-height:48px;margin-top:18px;border-radius:11px;
+ background:#315f8b;color:#fff;font-size:13px;font-weight:750;
+}
+@media(max-width:600px){
+ .modal-backdrop:has(.checkout-confirm),.modal-backdrop:has(.checkout-success){
+  align-items:flex-end!important;padding:10px!important;
+ }
+ .checkout-confirm,.checkout-success{
+  width:100%!important;max-width:none!important;max-height:92dvh!important;
+  padding:20px 17px!important;border-radius:20px 20px 14px 14px!important;
+ }
+ .checkout-confirm .modal-title-row,.checkout-success .modal-title-row{padding-bottom:14px;margin-bottom:13px}
+ .checkout-confirm .cart-total,.checkout-success .cart-total{margin:12px 0 16px!important;padding:14px!important}
+ .checkout-confirm .checkout-cash-input{min-height:54px}
+ .checkout-confirm .checkout-cash-input input{height:50px;font-size:20px!important}
+ .checkout-confirm .modal-actions{grid-template-columns:minmax(90px,.75fr) minmax(0,1.5fr)}
+ .checkout-confirm .modal-actions button{min-height:46px!important;padding:10px 9px!important;font-size:12px!important}
+}
+@media(max-width:360px){
+ .checkout-confirm,.checkout-success{padding:17px 13px!important}
+ .checkout-confirm .modal-actions{grid-template-columns:1fr}
+ .checkout-confirm .modal-actions button{width:100%}
+}
 `]
 })
 class AppComponent {
